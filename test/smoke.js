@@ -37,6 +37,8 @@ try {
   await run(['research', workspaceId, '--home', home, '--max-pages', '1']);
   const packet = await run(['agent', 'packet', workspaceId, '--home', home]);
   if (!packet.includes('packet:')) throw new Error(`Packet export failed: ${packet}`);
+  const prompt = await run(['agent', 'prompt', workspaceId, '--home', home]);
+  if (!prompt.includes('prompt:')) throw new Error(`Prompt export failed: ${prompt}`);
   const agentResearch = await run(['agent', 'research', workspaceId, '--home', home]);
   if (!agentResearch.includes('agent research complete')) throw new Error(`Agent research failed: ${agentResearch}`);
   await run(['claim', 'add', workspaceId, '--home', home, '--text', 'Manual smoke-test claim for workspace memory.', '--confidence', '0.7', '--source', 'test']);

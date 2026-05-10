@@ -111,6 +111,52 @@ export async function writeResearchPacket(home, workspaceId) {
   return { packet, artifact };
 }
 
+export async function writeResearchPrompt(home, workspaceId) {
+  const { root } = await resolveWorkspace(home, workspaceId);
+  await mkdir(path.join(root, 'research'), { recursive: true });
+  const packet = await buildResearchPacketForWorkspace(home, workspaceId);
+  const prompt = `# Contextula Semantic Research Task
+
+You are the semantic research provider for Contextula.
+
+Read the bounded workspace packet below and return ONLY valid JSON matching this shape:
+
+\`\`\`json
+{
+  "observations": [
+    { "text": "...", "source": "research/extracted/homepage.md", "confidence": 0.0 }
+  ],
+  "claims": [
+    { "text": "...", "source": "research/extracted/homepage.md", "confidence": 0.0 }
+  ],
+  "recommendedNextSteps": [
+    { "title": "...", "rationale": "..." }
+  ],
+  "openQuestions": ["..."]
+}
+\`\`\`
+
+Rules:
+
+- Stay inside the provided packet; do not invent facts.
+- Prefer nuanced semantic claims over obvious scrape facts.
+- Distinguish business lead-gen sites from personal/project hubs.
+- Capture tone, purpose, audience, conversion/navigation intent, and modernization implications.
+- Use confidence below 0.75 for inferred intent unless directly supported.
+- No outreach, no customer-facing commitments, no external actions.
+
+Packet:
+
+\`\`\`json
+${JSON.stringify(packet, null, 2)}
+\`\`\`
+`;
+  const artifact = 'research/agent-prompt.md';
+  await writeFile(path.join(root, artifact), prompt, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'agent.prompt.exported', at: now(), artifact });
+  return { prompt, artifact };
+}
+
 export async function runResearchAgent(home, workspaceId, { provider = 'static', response } = {}) {
   const { record, root } = await resolveWorkspace(home, workspaceId);
   await mkdir(path.join(root, 'research'), { recursive: true });

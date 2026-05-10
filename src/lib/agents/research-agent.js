@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, readJsonl } from '../util.js';
 import { resolveWorkspace } from '../storage.js';
 
@@ -9,17 +9,36 @@ function clampConfidence(value, fallback = 0.5) {
   return Math.max(0, Math.min(1, number));
 }
 
-async function buildResearchPacket(root) {
+export async function buildResearchPacketForWorkspace(home, workspaceId) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
   const profile = await readJson(path.join(root, 'profile.json'), {});
   const claims = await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []);
-  const homepage = await import('node:fs/promises')
-    .then((fs) => fs.readFile(path.join(root, 'research', 'extracted', 'homepage.md'), 'utf8'))
-    .catch(() => '');
-  return { profile, claims, homepage };
+  const homepage = await readFile(path.join(root, 'research', 'extracted', 'homepage.md'), 'utf8').catch(() => '');
+  return {
+    version: 1,
+    kind: 'contextula.research.packet',
+    generatedAt: now(),
+    workspace: {
+      id: record.id,
+      name: record.name || record.slug,
+      type: record.type,
+      status: record.status
+    },
+    profile,
+    claims,
+    artifacts: { homepage },
+    policy: {
+      workspaceOnly: true,
+      noExternalContact: true,
+      readOnlyWeb: true,
+      durableWritesByContextulaOnly: true
+    },
+    objective: 'Build a bounded first-contact modernization research pass from available workspace artifacts.'
+  };
 }
 
 function staticProvider(packet) {
-  const text = `${packet.profile?.name || ''} ${packet.profile?.website || ''} ${packet.homepage || ''}`.toLowerCase();
+  const text = `${packet.profile?.name || ''} ${packet.profile?.website || ''} ${packet.artifacts?.homepage || ''}`.toLowerCase();
   const observations = [];
   const claims = [];
   const recommendedNextSteps = [];
@@ -70,18 +89,35 @@ function staticProvider(packet) {
   return { observations, claims, recommendedNextSteps, openQuestions };
 }
 
+async function jsonProvider(_packet, options) {
+  if (!options.response) throw new Error('JSON provider requires --response <path>');
+  const content = await readFile(options.response, 'utf8');
+  return JSON.parse(content.replace(/^\uFEFF/, ''));
+}
+
 function providerFor(name) {
   if (!name || name === 'static') return staticProvider;
+  if (name === 'json') return jsonProvider;
   throw new Error(`Unknown research provider: ${name}`);
 }
 
-export async function runResearchAgent(home, workspaceId, { provider = 'static' } = {}) {
+export async function writeResearchPacket(home, workspaceId) {
+  const { root } = await resolveWorkspace(home, workspaceId);
+  await mkdir(path.join(root, 'research'), { recursive: true });
+  const packet = await buildResearchPacketForWorkspace(home, workspaceId);
+  const artifact = 'research/agent-packet.json';
+  await writeFile(path.join(root, artifact), `${JSON.stringify(packet, null, 2)}\n`, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'agent.packet.exported', at: now(), artifact });
+  return { packet, artifact };
+}
+
+export async function runResearchAgent(home, workspaceId, { provider = 'static', response } = {}) {
   const { record, root } = await resolveWorkspace(home, workspaceId);
   await mkdir(path.join(root, 'research'), { recursive: true });
   await mkdir(path.join(root, 'reports'), { recursive: true });
 
-  const packet = await buildResearchPacket(root);
-  const result = providerFor(provider)(packet);
+  const packet = await buildResearchPacketForWorkspace(home, workspaceId);
+  const result = await providerFor(provider)(packet, { response });
 
   for (const observation of result.observations || []) {
     await appendJsonl(path.join(root, 'research', 'observations.jsonl'), {

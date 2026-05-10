@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, readJsonl } from '../util.js';
 import { resolveWorkspace } from '../storage.js';
 import { runProviderCommand } from '../provider-command.js';
+import { validateProviderResponse } from '../provider-response.js';
 
 function clampConfidence(value, fallback = 0.5) {
   const number = Number(value);
@@ -175,7 +176,7 @@ export async function runResearchAgent(home, workspaceId, { provider = 'static',
   await mkdir(path.join(root, 'reports'), { recursive: true });
 
   const packet = await buildResearchPacketForWorkspace(home, workspaceId);
-  const result = await providerFor(provider)(packet, { response });
+  const result = validateProviderResponse(await providerFor(provider)(packet, { response }));
 
   for (const observation of result.observations || []) {
     await appendJsonl(path.join(root, 'research', 'observations.jsonl'), {

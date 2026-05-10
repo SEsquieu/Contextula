@@ -43,6 +43,15 @@ export async function validateWorkspace(home, workspaceId) {
   try { await readJsonl(path.join(root, 'timeline.jsonl')); } catch (error) { problems.push(`invalid timeline jsonl: ${error.message}`); }
   try { await readJsonl(path.join(root, 'memory', 'claims.jsonl')); } catch (error) { problems.push(`invalid claims jsonl: ${error.message}`); }
 
+  const approvalFiles = (await readdir(path.join(root, 'approvals')).catch(() => [])).filter((file) => file.endsWith('.json'));
+  for (const file of approvalFiles) {
+    const approval = await readJson(path.join(root, 'approvals', file), {});
+    if (!approval.id) problems.push(`approval missing id: approvals/${file}`);
+    if (!approval.type) problems.push(`approval missing type: approvals/${file}`);
+    if (!approval.status) problems.push(`approval missing status: approvals/${file}`);
+    if (approval.artifact && !(await exists(path.join(root, approval.artifact)))) problems.push(`approval artifact missing: ${approval.id || file} -> ${approval.artifact}`);
+  }
+
   return { record, root, ok: problems.length === 0, problems };
 }
 

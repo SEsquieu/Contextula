@@ -1,8 +1,9 @@
 import path from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { appendJsonl, id, now, readJson, readJsonl, VERSION, writeJson } from './util.js';
+import { appendJsonl, id, now, readJson, readJsonl, VERSION } from './util.js';
 import { resolveWorkspace } from './storage.js';
 import { classifyWorkspace } from './classification.js';
+import { createApproval } from './approvals.js';
 
 function topClaims(claims, limit = 10) {
   return claims
@@ -78,9 +79,8 @@ export async function generateHomepageMock(home, workspaceId, { variant = 'v1' }
     artifact,
     reason: 'Design mocks require review before customer-facing presentation or implementation.'
   };
-  await writeJson(path.join(root, 'approvals', `${approval.id}.json`), approval);
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'approval.requested', at: now(), approvalId: approval.id, action: approval.type, artifact });
-  return { artifact, mock, approval };
+  const approvalResult = await createApproval(root, approval);
+  return { artifact, mock, approval: approvalResult.approval };
 }
 
 export async function critiqueDesign(home, workspaceId, { artifact = 'design/mocks/homepage-v1.md', feedback } = {}) {
@@ -222,7 +222,6 @@ export async function generateHomepageHtml(home, workspaceId, { variant = 'v1' }
     artifact,
     reason: 'HTML design mocks require review before customer-facing presentation or implementation.'
   };
-  await writeJson(path.join(root, 'approvals', `${approval.id}.json`), approval);
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'approval.requested', at: now(), approvalId: approval.id, action: approval.type, artifact });
-  return { artifact, html, approval };
+  const approvalResult = await createApproval(root, approval);
+  return { artifact, html, approval: approvalResult.approval };
 }

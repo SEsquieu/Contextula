@@ -1,4 +1,4 @@
-﻿import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
@@ -12,6 +12,17 @@ async function run(args) {
   const { stdout, stderr } = await execFileAsync(process.execPath, [cli, ...args], { cwd: process.cwd() });
   if (stderr) process.stderr.write(stderr);
   return stdout.trim();
+}
+
+async function expectFail(args, expected) {
+  try {
+    await run(args);
+  } catch (error) {
+    const output = `${error.stdout || ''}\n${error.stderr || ''}\n${error.message || ''}`;
+    if (!output.includes(expected)) throw new Error(`Expected failure containing "${expected}", got: ${output}`);
+    return;
+  }
+  throw new Error(`Expected command to fail: ${args.join(' ')}`);
 }
 
 try {
@@ -41,6 +52,9 @@ try {
   if (!prompt.includes('prompt:')) throw new Error(`Prompt export failed: ${prompt}`);
   const agentResearch = await run(['agent', 'research', workspaceId, '--home', home]);
   if (!agentResearch.includes('agent research complete')) throw new Error(`Agent research failed: ${agentResearch}`);
+  const badProviderResponse = path.join(home, 'bad-provider-response.json');
+  await writeFile(badProviderResponse, JSON.stringify({ observations: [{ confidence: 0.5 }] }), 'utf8');
+  await expectFail(['agent', 'research', workspaceId, '--home', home, '--provider', 'json', '--response', badProviderResponse], 'observations[0].text');
   await run(['claim', 'add', workspaceId, '--home', home, '--text', 'Manual smoke-test claim for workspace memory.', '--confidence', '0.7', '--source', 'test']);
   const claims = await run(['claims', workspaceId, '--home', home]);
   if (!claims.includes('Manual smoke-test claim')) throw new Error(`Manual claim missing: ${claims}`);
@@ -59,6 +73,8 @@ try {
   if (!designMock.includes('design mock:')) throw new Error(`Design mock failed: ${designMock}`);
   const designHtml = await run(['design', 'html', workspaceId, '--home', home]);
   if (!designHtml.includes('design html:')) throw new Error(`Design html failed: ${designHtml}`);
+  const designHtmlAgain = await run(['design', 'html', workspaceId, '--home', home]);
+  if (designHtml.match(/approval: (appr_[^\s]+)/)?.[1] !== designHtmlAgain.match(/approval: (appr_[^\s]+)/)?.[1]) throw new Error('Design HTML regenerated a duplicate pending approval for the same artifact');
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);
@@ -71,6 +87,7 @@ try {
   if (!dashboard.includes('dashboard:')) throw new Error(`Dashboard generation failed: ${dashboard}`);
   const state = await run(['state', workspaceId, '--home', home]);
   if (!state.includes('activeClaims')) throw new Error(`State materialization failed: ${state}`);
+  if (!state.includes('classification')) throw new Error(`State classification missing: ${state}`);
   const timeline = await run(['timeline', workspaceId, '--home', home, '--limit', '5']);
   if (!timeline.includes('state.materialized')) throw new Error(`Timeline output failed: ${timeline}`);
   const portfolio = await run(['portfolio', '--home', home]);

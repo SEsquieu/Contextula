@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
-import { appendJsonl, id, now, readJsonl } from './util.js';
+import { mkdir, rename, writeFile } from 'node:fs/promises';
+import { appendJsonl, exists, id, now, readJsonl } from './util.js';
 import { resolveWorkspace } from './storage.js';
 import { classifyWorkspace } from './classification.js';
 
@@ -106,6 +106,16 @@ export async function generateTickets(home, workspaceId) {
   const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')));
   const claimText = claims.map((claim) => claim.text).join(' ').toLowerCase();
   const classification = classifyWorkspace(claims);
+  const archiveId = now().replace(/[:.]/g, '-');
+  let archivedPrevious = false;
+  for (const file of ['tickets.jsonl', 'modernization-tickets.md']) {
+    const current = path.join(root, 'tickets', file);
+    if (await exists(current)) {
+      await mkdir(path.join(root, 'tickets', 'archive'), { recursive: true });
+      await rename(current, path.join(root, 'tickets', 'archive', `${archiveId}-${file}`));
+      archivedPrevious = true;
+    }
+  }
 
   const tickets = [
     ...baseTickets(classification),
@@ -121,7 +131,7 @@ export async function generateTickets(home, workspaceId) {
 
   const md = `# Modernization Tickets\n\nWorkspace: ${record.name || record.slug}\nClassification: ${classification.label}\nGenerated: ${now()}\n\n${tickets.map((item, index) => `## ${index + 1}. ${item.title}\n\n- ID: ${item.id}\n- Status: ${item.status}\n- Priority: ${item.priority}\n- Effort: ${item.effort}\n- Approval: ${item.approval}\n\n${item.rationale}\n\nFirst step: ${item.firstStep}\n`).join('\n')}\n`;
   await writeFile(path.join(root, 'tickets', 'modernization-tickets.md'), md, 'utf8');
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'tickets.generated', at: now(), count: tickets.length, artifact: 'tickets/modernization-tickets.md', classification: classification.kind });
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'tickets.generated', at: now(), count: tickets.length, artifact: 'tickets/modernization-tickets.md', classification: classification.kind, archivedPrevious: archivedPrevious ? archiveId : null });
   return tickets;
 }
 

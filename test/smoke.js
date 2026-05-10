@@ -55,6 +55,10 @@ try {
   if (!designRevision.includes('design revision:')) throw new Error(`Design revision failed: ${designRevision}`);
   const dashboard = await run(['dashboard', workspaceId, '--home', home]);
   if (!dashboard.includes('dashboard:')) throw new Error(`Dashboard generation failed: ${dashboard}`);
+  const state = await run(['state', workspaceId, '--home', home]);
+  if (!state.includes('activeClaims')) throw new Error(`State materialization failed: ${state}`);
+  const timeline = await run(['timeline', workspaceId, '--home', home, '--limit', '5']);
+  if (!timeline.includes('state.materialized')) throw new Error(`Timeline output failed: ${timeline}`);
   const portfolio = await run(['portfolio', '--home', home]);
   if (!portfolio.includes('Contextula Portfolio')) throw new Error(`Portfolio generation failed: ${portfolio}`);
   const validation = await run(['validate', workspaceId, '--home', home]);

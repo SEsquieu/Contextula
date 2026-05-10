@@ -147,3 +147,104 @@ export async function generateSitePlan(home, workspaceId) {
   });
   return { plan, artifacts: ['site/sitemap.json', 'site/design-system.json', 'site/site-plan.md'], approval: approvalResult.approval };
 }
+
+function routeToFile(routePath) {
+  if (routePath === '/') return 'index.html';
+  return `${routePath.replace(/^\//, '').replace(/\/$/, '')}/index.html`;
+}
+
+function routeHref(routePath) {
+  return routePath;
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
+
+function pageHtml({ plan, route, buildId }) {
+  const nav = plan.routes
+    .filter((item) => item.nav)
+    .map((item) => `<a href="${routeHref(item.path)}">${escapeHtml(item.title)}</a>`)
+    .join('');
+  const external = plan.externalDestinations
+    .map((dest) => `<article class="card"><div class="tag">${escapeHtml(dest.role)}</div><h2>${escapeHtml(dest.label)}</h2><p><a data-cta="external-${escapeHtml(dest.label).toLowerCase().replace(/[^a-z0-9]+/g, '-')}" href="${escapeHtml(dest.url)}">${escapeHtml(dest.url)}</a></p></article>`)
+    .join('\n');
+  const content = route.content.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(route.title)} | ${escapeHtml(plan.workspaceName)}</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body data-contextula-build="${escapeHtml(buildId)}" data-route="${escapeHtml(route.path)}">
+  <main class="wrap">
+    <header class="topbar">
+      <a class="brand" href="/"><span class="logo">▰</span><span><strong>${escapeHtml(plan.workspaceName)}</strong><em>${escapeHtml(plan.classification.label)}</em></span></a>
+      <nav>${nav}</nav>
+    </header>
+    <section id="hero" class="panel hero">
+      <div class="label">${escapeHtml(route.status)} route</div>
+      <h1>${escapeHtml(route.title)}</h1>
+      <p>${escapeHtml(route.purpose)}</p>
+      <p class="ops"><strong>Ops goal:</strong> ${escapeHtml(route.opsGoal || 'Measure route engagement and visitor intent.')}</p>
+    </section>
+    <section id="content" class="panel">
+      <div class="label">Content map</div>
+      <ul>${content}</ul>
+    </section>
+    ${external && route.path === '/' ? `<section id="external-destinations" class="cards">${external}</section>` : ''}
+    <footer>CONTEXTULA SITE BUILD · ${escapeHtml(buildId)} · REVIEW REQUIRED</footer>
+  </main>
+</body>
+</html>
+`;
+}
+
+const css = `:root{--bg:#030603;--panel:#071007;--green:#39ff14;--soft:#b6ff9f;--muted:#91b98a;--line:rgba(57,255,20,.66)}*{box-sizing:border-box}body{margin:0;background:linear-gradient(rgba(57,255,20,.035) 50%,transparent 50%) 0 0/100% 4px,var(--bg);color:#e9ffe2;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.wrap{width:min(1120px,calc(100vw - 32px));margin:0 auto;padding:28px 0 56px}.topbar,.panel,.card{border:1px solid var(--line);background:rgba(7,16,7,.84);box-shadow:inset 0 0 0 1px rgba(182,255,159,.06)}.topbar{display:flex;justify-content:space-between;gap:18px;align-items:center;padding:12px 14px}.brand{display:flex;align-items:center;gap:12px;color:var(--soft);text-decoration:none;text-transform:uppercase;letter-spacing:.12em}.brand em{display:block;color:var(--muted);font-size:11px;font-style:normal;margin-top:3px}.logo{border:1px solid var(--green);color:var(--green);padding:7px 10px}nav{display:flex;gap:10px;flex-wrap:wrap}nav a{color:var(--green);text-decoration:none;border:1px solid rgba(57,255,20,.35);padding:7px 9px;font-size:12px;text-transform:uppercase}.panel{margin-top:18px;padding:22px}.label,.tag{color:var(--green);font-size:12px;letter-spacing:.18em;text-transform:uppercase}h1{color:var(--soft);font-size:clamp(42px,7vw,78px);line-height:.95;text-transform:uppercase;letter-spacing:-.055em;margin:14px 0}p,li{color:var(--muted);line-height:1.65}.ops strong{color:var(--soft)}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:18px;background:transparent;border:0}.card{padding:16px}.card h2{color:var(--soft);text-transform:uppercase}.card a{color:var(--green)}footer{color:var(--muted);font-size:12px;text-align:right;margin-top:18px}@media(max-width:760px){.topbar{align-items:flex-start;flex-direction:column}}`;
+
+function validateLinks(plan) {
+  const internal = new Set(plan.routes.map((route) => route.path));
+  const checked = [];
+  const missing = [];
+  for (const route of plan.routes) {
+    for (const navRoute of plan.routes.filter((item) => item.nav)) {
+      checked.push({ from: route.path, to: navRoute.path, ok: internal.has(navRoute.path) });
+      if (!internal.has(navRoute.path)) missing.push({ from: route.path, to: navRoute.path });
+    }
+  }
+  return { ok: missing.length === 0, checked, missing };
+}
+
+export async function buildStaticSite(home, workspaceId) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  const plan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
+  if (!plan) throw new Error('Missing site/sitemap.json. Run: contextula site plan <workspace>');
+  const buildId = id('sitebuild');
+  const relativeRoot = `builds/${buildId}`;
+  const buildRoot = path.join(root, relativeRoot);
+  await mkdir(path.join(buildRoot, 'assets'), { recursive: true });
+  await mkdir(path.join(buildRoot, 'contextula'), { recursive: true });
+  await writeFile(path.join(buildRoot, 'assets', 'styles.css'), css, 'utf8');
+
+  for (const route of plan.routes) {
+    const file = path.join(buildRoot, routeToFile(route.path));
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, pageHtml({ plan, route, buildId }), 'utf8');
+  }
+
+  const linkCheck = validateLinks(plan);
+  const build = { id: buildId, version: 1, createdAt: now(), workspaceId: record.id, plan: 'site/sitemap.json', root: relativeRoot, routes: plan.routes.map((route) => ({ path: route.path, file: routeToFile(route.path) })) };
+  await writeJson(path.join(buildRoot, 'contextula', 'build.json'), build);
+  await writeJson(path.join(buildRoot, 'contextula', 'sitemap.json'), plan);
+  await writeJson(path.join(buildRoot, 'contextula', 'link-check.json'), linkCheck);
+  const report = `# Site Build Report\n\nBuild: ${buildId}\nWorkspace: ${record.name || record.slug}\nGenerated: ${build.createdAt}\n\n## Routes\n\n${build.routes.map((route) => `- ${route.path} -> ${route.file}`).join('\n')}\n\n## Link check\n\n${linkCheck.ok ? 'OK' : 'FAILED'}\n`;
+  await writeFile(path.join(buildRoot, 'contextula', 'build-report.md'), report, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.build.generated', at: now(), artifact: `${relativeRoot}/index.html`, build: relativeRoot, routes: build.routes.length, linkCheck: linkCheck.ok });
+  return { build, linkCheck, artifact: `${relativeRoot}/index.html`, report: `${relativeRoot}/contextula/build-report.md` };
+}

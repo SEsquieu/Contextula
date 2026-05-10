@@ -97,6 +97,8 @@ try {
   if (!visualReference.includes('visual reference:')) throw new Error(`Visual reference failed: ${visualReference}`);
   const sitePlan = await run(['site', 'plan', workspaceId, '--home', home]);
   if (!sitePlan.includes('site plan:') || !sitePlan.includes('approval:')) throw new Error(`Site plan failed: ${sitePlan}`);
+  const siteBuild = await run(['site', 'build', workspaceId, '--home', home]);
+  if (!siteBuild.includes('site build:') || !siteBuild.includes('link check: ok')) throw new Error(`Site build failed: ${siteBuild}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

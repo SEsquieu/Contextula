@@ -29,6 +29,8 @@ try {
   if (!approvalId) throw new Error(`Could not parse approval id from: ${approvals}`);
 
   await run(['research', workspaceId, '--home', home, '--max-pages', '1']);
+  const agentResearch = await run(['agent', 'research', workspaceId, '--home', home]);
+  if (!agentResearch.includes('agent research complete')) throw new Error(`Agent research failed: ${agentResearch}`);
   await run(['claim', 'add', workspaceId, '--home', home, '--text', 'Manual smoke-test claim for workspace memory.', '--confidence', '0.7', '--source', 'test']);
   const claims = await run(['claims', workspaceId, '--home', home]);
   if (!claims.includes('Manual smoke-test claim')) throw new Error(`Manual claim missing: ${claims}`);

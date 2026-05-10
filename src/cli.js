@@ -6,6 +6,7 @@ import { researchHomepage, researchWebsite } from './lib/research.js';
 import { buildPlan, createApproval } from './lib/planning.js';
 import { listApprovals, setApprovalStatus } from './lib/approvals.js';
 import { addClaim, listClaims } from './lib/claims.js';
+import { runResearchAgent } from './lib/agents/research-agent.js';
 import { generateDashboard } from './lib/dashboard.js';
 import { draftOutreach } from './lib/drafts.js';
 import { writePortfolioReport } from './lib/portfolio.js';
@@ -65,6 +66,12 @@ async function printApprovals(home, workspaceId) {
     return;
   }
   for (const approval of approvals) console.log(`${approval.id}\t${approval.status}\t${approval.type}\t${approval.artifact || ''}`);
+}
+
+async function runAgentResearch(home, workspaceId, flags) {
+  const result = await runResearchAgent(home, workspaceId, { provider: flags.provider || 'static' });
+  console.log(`agent research complete: ${result.observations?.length || 0} observation(s), ${result.claims?.length || 0} claim(s)`);
+  console.log(`artifact: ${result.artifact}`);
 }
 
 async function runResearch(home, workspaceId, flags) {
@@ -139,7 +146,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
 }
 
 async function main() {
@@ -155,6 +162,7 @@ async function main() {
     return;
   }
   if (cmd === 'intake' && subcmd === 'customer') return intakeCustomer(home, flags);
+  if (cmd === 'agent' && subcmd === 'research') return runAgentResearch(home, maybeId, flags);
   if (cmd === 'research') return runResearch(home, subcmd, flags);
   if (cmd === 'portfolio') return printPortfolio(home);
   if (cmd === 'dashboard') return createDashboard(home, subcmd);

@@ -8,6 +8,7 @@ import { listApprovals, setApprovalStatus } from './lib/approvals.js';
 import { addClaim, listClaims } from './lib/claims.js';
 import { runResearchAgent, writeResearchPacket } from './lib/agents/research-agent.js';
 import { generateDashboard } from './lib/dashboard.js';
+import { generateDesignBrief, generateHomepageMock } from './lib/design.js';
 import { draftOutreach } from './lib/drafts.js';
 import { writePortfolioReport } from './lib/portfolio.js';
 import { generateBrief, generateReport } from './lib/reports.js';
@@ -125,6 +126,16 @@ async function createTickets(home, workspaceId) {
   console.log(`generated ${tickets.length} ticket(s)`);
 }
 
+async function createDesignBrief(home, workspaceId) {
+  const result = await generateDesignBrief(home, workspaceId);
+  console.log(`design brief: ${result.artifact}`);
+}
+
+async function createDesignMock(home, workspaceId, flags) {
+  const result = await generateHomepageMock(home, workspaceId, { variant: flags.variant || 'v1' });
+  console.log(`design mock: ${result.artifact}`);
+}
+
 async function createOutreachDraft(home, workspaceId, flags) {
   const result = await draftOutreach(home, workspaceId, { channel: flags.channel || 'email', tone: flags.tone || 'concise' });
   console.log(`draft: ${result.artifact}`);
@@ -151,7 +162,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
 }
 
 async function main() {
@@ -192,6 +203,8 @@ async function main() {
   if (cmd === 'draft' && subcmd === 'outreach') return createOutreachDraft(home, maybeId, flags);
   if (cmd === 'tickets' && subcmd === 'generate') return createTickets(home, maybeId);
   if (cmd === 'tickets' && subcmd === 'list') return printTickets(home, maybeId);
+  if (cmd === 'design' && subcmd === 'brief') return createDesignBrief(home, maybeId);
+  if (cmd === 'design' && subcmd === 'mock') return createDesignMock(home, maybeId, flags);
   if (cmd === 'validate') return printValidation(home, subcmd);
 
   help();

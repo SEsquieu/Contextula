@@ -16,6 +16,8 @@ const requiredWorkspaceDirs = [
   'research/extracted',
   'plans',
   'tickets',
+  'design/briefs',
+  'design/mocks',
   'drafts',
   'approvals',
   'reports',

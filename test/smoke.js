@@ -89,8 +89,11 @@ try {
   if (!designHtml.includes('design html:')) throw new Error(`Design html failed: ${designHtml}`);
   const providerDesignHtml = await run(['design', 'html', workspaceId, '--home', home, '--provider', 'json', '--response', path.resolve('docs/fixtures/design-html-response-good.json'), '--variant', 'provider-fixture']);
   if (!providerDesignHtml.includes('provider run: design/provider-runs/drun_')) throw new Error(`Provider design html failed: ${providerDesignHtml}`);
+  if (!providerDesignHtml.includes('approval:')) throw new Error(`Provider design html did not create approval: ${providerDesignHtml}`);
   const designHtmlAgain = await run(['design', 'html', workspaceId, '--home', home]);
   if (designHtml.match(/approval: (appr_[^\s]+)/)?.[1] !== designHtmlAgain.match(/approval: (appr_[^\s]+)/)?.[1]) throw new Error('Design HTML regenerated a duplicate pending approval for the same artifact');
+  const visualReference = await run(['visual', 'reference', workspaceId, '--home', home, '--image', path.resolve('docs/fixtures/provider-response-good.json'), '--note', 'Smoke-test visual reference placeholder.']);
+  if (!visualReference.includes('visual reference:')) throw new Error(`Visual reference failed: ${visualReference}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

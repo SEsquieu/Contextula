@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 import { appendJsonl, id, now, readJson, writeJson } from './util.js';
 import { resolveWorkspace } from './storage.js';
@@ -68,5 +68,35 @@ export async function captureVisualSnapshot(home, workspaceId, { url, artifact, 
   await writeJson(path.join(outDir, 'snapshot.json'), metadata);
   await writeFile(path.join(outDir, 'analysis-prompt.md'), prompt, 'utf8');
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'visual.snapshot.captured', at: now(), target: target.label, viewport, artifact: metadata.artifacts.screenshot, snapshot: relativeDir });
+  return metadata;
+}
+
+export async function addVisualReference(home, workspaceId, { image, note = '' } = {}) {
+  if (!image) throw new Error('Visual reference requires --image <path>');
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  const referenceId = id('vref');
+  const relativeDir = `visual/references/${referenceId}`;
+  const outDir = path.join(root, relativeDir);
+  await mkdir(outDir, { recursive: true });
+  const ext = path.extname(image) || '.png';
+  const imageArtifact = `${relativeDir}/reference${ext}`;
+  await copyFile(path.resolve(image), path.join(root, imageArtifact));
+  const metadata = {
+    id: referenceId,
+    version: 1,
+    createdAt: now(),
+    workspaceId: record.id,
+    workspaceName: record.name || record.slug,
+    note,
+    artifacts: {
+      image: imageArtifact,
+      metadata: `${relativeDir}/reference.json`,
+      analysisPrompt: `${relativeDir}/analysis-prompt.md`
+    }
+  };
+  const prompt = `# Contextula Visual Reference Analysis Task\n\nAnalyze this user-provided reference image as design guidance, not something to copy exactly. Return concise visual preference claims suitable for workspace memory.\n\nWorkspace: ${metadata.workspaceName} (${metadata.workspaceId})\nReference image: ${metadata.artifacts.image}\nUser note: ${note || '(none)'}\n\nFocus on:\n\n- what to borrow: layout density, typography, palette, mood, hierarchy, interaction style\n- what not to borrow\n- how this reference should combine with existing site visual identity\n- concrete constraints for future design prompts\n`;
+  await writeJson(path.join(outDir, 'reference.json'), metadata);
+  await writeFile(path.join(outDir, 'analysis-prompt.md'), prompt, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'visual.reference.added', at: now(), artifact: imageArtifact, reference: relativeDir, note });
   return metadata;
 }

@@ -1,10 +1,11 @@
 import path from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { appendJsonl, id, now, readJson, readJsonl } from './util.js';
+import { appendJsonl, id, now, readJson, readJsonl, VERSION } from './util.js';
 import { resolveWorkspace } from './storage.js';
 import { classifyWorkspace } from './classification.js';
 import { runProviderCommand } from './provider-command.js';
 import { defaultOpenClawDesignCommand } from './providers.js';
+import { createApproval } from './approvals.js';
 
 function topClaims(claims, limit = 18) {
   return claims
@@ -13,12 +14,12 @@ function topClaims(claims, limit = 18) {
     .slice(0, limit);
 }
 
-async function latestVisualSnapshots(root) {
+async function latestVisualEvents(root, type) {
   const events = await readJsonl(path.join(root, 'timeline.jsonl')).catch(() => []);
   return events
-    .filter((event) => event.type === 'visual.snapshot.captured')
+    .filter((event) => event.type === type)
     .slice(-6)
-    .map((event) => ({ target: event.target, viewport: event.viewport, screenshot: event.artifact, snapshot: event.snapshot }));
+    .map((event) => ({ target: event.target, viewport: event.viewport || null, screenshot: event.artifact, snapshot: event.snapshot || null, reference: event.reference || null, note: event.note || null }));
 }
 
 export async function buildDesignPacket(home, workspaceId, { variant = 'provider-v1' } = {}) {
@@ -37,7 +38,8 @@ export async function buildDesignPacket(home, workspaceId, { variant = 'provider
     profile,
     classification,
     claims,
-    visualSnapshots: await latestVisualSnapshots(root),
+    visualSnapshots: await latestVisualEvents(root, 'visual.snapshot.captured'),
+    visualReferences: await latestVisualEvents(root, 'visual.reference.added'),
     artifacts: {
       designBrief: designBrief.slice(0, 12000),
       currentHomepage: currentHomepage.slice(0, 12000)
@@ -105,5 +107,15 @@ export async function runDesignHtmlProvider(home, workspaceId, { provider = 'jso
   await writeFile(path.join(root, artifact), result.html, 'utf8');
   await writeFile(path.join(runDir, 'rationale.md'), result.rationale || '(none)', 'utf8');
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.html.provider_generated', at: now(), provider, artifact, providerRun: runArtifact, variant, classification: packet.classification.kind });
-  return { artifact, html: result.html, rationale: result.rationale, providerRun: runArtifact };
+  const approvalResult = await createApproval(root, {
+    id: id('appr'),
+    version: VERSION,
+    type: 'design.review',
+    status: 'pending',
+    requestedAt: now(),
+    requestedBy: 'contextula-design-provider',
+    artifact,
+    reason: 'Provider-backed HTML design mocks require review before customer-facing presentation or implementation.'
+  });
+  return { artifact, html: result.html, rationale: result.rationale, providerRun: runArtifact, approval: approvalResult.approval };
 }

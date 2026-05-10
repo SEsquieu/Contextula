@@ -21,7 +21,7 @@ import { materializeWorkspaceState, readTimeline } from './lib/state.js';
 import { generateTickets, listTickets } from './lib/tickets.js';
 import { validateHome, validateWorkspace } from './lib/validation.js';
 import { listDesignProviders, listResearchProviders } from './lib/providers.js';
-import { captureVisualSnapshot } from './lib/visual.js';
+import { addVisualReference, captureVisualSnapshot } from './lib/visual.js';
 
 async function intakeCustomer(home, flags) {
   if (!flags.name) throw new Error('Missing --name');
@@ -239,6 +239,7 @@ async function createDesignHtml(home, workspaceId, flags) {
     const result = await runDesignHtmlProvider(home, workspaceId, { provider, response: flags.response, command: flags.command, variant: flags.variant || 'provider-v1' });
     console.log(`design html: ${result.artifact}`);
     console.log(`provider run: ${result.providerRun}`);
+    console.log(`approval: ${result.approval.id}`);
     return;
   }
   const result = await generateHomepageHtml(home, workspaceId, { variant: flags.variant || 'v1' });
@@ -259,6 +260,13 @@ async function exportDesignPrompt(home, workspaceId, flags) {
 async function createVisualSnapshot(home, workspaceId, flags) {
   const result = await captureVisualSnapshot(home, workspaceId, { url: flags.url, artifact: flags.artifact, viewport: flags.viewport || 'desktop' });
   console.log(`visual snapshot: ${result.artifacts.screenshot}`);
+  console.log(`metadata: ${result.artifacts.metadata}`);
+  console.log(`analysis prompt: ${result.artifacts.analysisPrompt}`);
+}
+
+async function createVisualReference(home, workspaceId, flags) {
+  const result = await addVisualReference(home, workspaceId, { image: flags.image, note: flags.note || '' });
+  console.log(`visual reference: ${result.artifacts.image}`);
   console.log(`metadata: ${result.artifacts.metadata}`);
   console.log(`analysis prompt: ${result.artifacts.analysisPrompt}`);
 }
@@ -304,7 +312,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  visual reference <workspace-id-or-slug> --image <path> [--note <text>] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
 }
 
 async function main() {
@@ -360,6 +368,7 @@ async function main() {
   if (cmd === 'design' && subcmd === 'mock') return createDesignMock(home, maybeId, flags);
   if (cmd === 'design' && subcmd === 'html') return createDesignHtml(home, maybeId, flags);
   if (cmd === 'visual' && subcmd === 'snapshot') return createVisualSnapshot(home, maybeId, flags);
+  if (cmd === 'visual' && subcmd === 'reference') return createVisualReference(home, maybeId, flags);
   if (cmd === 'design' && subcmd === 'critique') return createDesignCritique(home, maybeId, flags);
   if (cmd === 'design' && subcmd === 'revise') return createDesignRevision(home, maybeId, flags);
   if (cmd === 'review') return printReview(home, subcmd);

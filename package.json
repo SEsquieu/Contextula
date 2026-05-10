@@ -1,0 +1,17 @@
+{
+  "name": "contextula",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Scoped-context operating layer for modernization loops.",
+  "type": "module",
+  "bin": {
+    "contextula": "./src/cli.js"
+  },
+  "scripts": {
+    "contextula": "node ./src/cli.js",
+    "smoke": "node ./src/cli.js --help && node ./src/cli.js init --home ./.tmp-contextula && node ./src/cli.js intake customer --home ./.tmp-contextula --name \"Example Plumbing\" --website \"https://example.com\" && node ./src/cli.js list --home ./.tmp-contextula"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -29,7 +29,12 @@ try {
   if (!approvalId) throw new Error(`Could not parse approval id from: ${approvals}`);
 
   await run(['research', workspaceId, '--home', home, '--max-pages', '1']);
+  await run(['claim', 'add', workspaceId, '--home', home, '--text', 'Manual smoke-test claim for workspace memory.', '--confidence', '0.7', '--source', 'test']);
+  const claims = await run(['claims', workspaceId, '--home', home]);
+  if (!claims.includes('Manual smoke-test claim')) throw new Error(`Manual claim missing: ${claims}`);
   await run(['report', workspaceId, '--home', home]);
+  const brief = await run(['brief', workspaceId, '--home', home]);
+  if (!brief.includes('Modernization Brief')) throw new Error(`Brief generation failed: ${brief}`);
   const validation = await run(['validate', workspaceId, '--home', home]);
   if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);

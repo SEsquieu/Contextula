@@ -5,7 +5,8 @@ import { createCustomer, listWorkspaces, readProfile, writeProfile } from './lib
 import { researchHomepage, researchWebsite } from './lib/research.js';
 import { buildPlan, createApproval } from './lib/planning.js';
 import { listApprovals, setApprovalStatus } from './lib/approvals.js';
-import { generateReport } from './lib/reports.js';
+import { addClaim, listClaims } from './lib/claims.js';
+import { generateBrief, generateReport } from './lib/reports.js';
 import { validateHome, validateWorkspace } from './lib/validation.js';
 
 async function intakeCustomer(home, flags) {
@@ -65,6 +66,23 @@ async function runResearch(home, workspaceId, flags) {
   console.log(`Research complete: ${result.pages.length} page(s), ${result.claims.length} claim(s)`);
 }
 
+async function printClaims(home, workspaceId, flags) {
+  const { root } = await resolveWorkspace(home, workspaceId);
+  const claims = await listClaims(root, { status: flags.status || 'active' });
+  if (claims.length === 0) {
+    console.log('No claims found.');
+    return;
+  }
+  for (const claim of claims) console.log(`${claim.id}\t${claim.status}\t${Math.round((claim.confidence || 0) * 100)}\t${claim.text}\t${claim.source}`);
+}
+
+async function createClaim(home, workspaceId, flags) {
+  const { root } = await resolveWorkspace(home, workspaceId);
+  const text = flags.text || flags.claim;
+  const claim = await addClaim(root, { text, confidence: flags.confidence || 0.5, source: flags.source || 'manual' });
+  console.log(`claim added: ${claim.id}`);
+}
+
 async function printValidation(home, workspaceId) {
   const results = workspaceId ? [await validateWorkspace(home, workspaceId)] : await validateHome(home);
   if (results.length === 0) {
@@ -85,7 +103,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
 }
 
 async function main() {
@@ -116,6 +134,9 @@ async function main() {
     return;
   }
   if (cmd === 'report') return console.log(await generateReport(home, subcmd));
+  if (cmd === 'brief') return console.log(await generateBrief(home, subcmd));
+  if (cmd === 'claims') return printClaims(home, subcmd, flags);
+  if (cmd === 'claim' && subcmd === 'add') return createClaim(home, maybeId, flags);
   if (cmd === 'validate') return printValidation(home, subcmd);
 
   help();

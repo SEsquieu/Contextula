@@ -50,7 +50,10 @@ npm run contextula -- research <workspace-id> --max-pages 4
 npm run contextula -- list
 npm run contextula -- show <workspace-id>
 npm run contextula -- approvals <workspace-id>
+npm run contextula -- claims <workspace-id>
+npm run contextula -- claim add <workspace-id> --text "Customer prefers phone calls." --confidence 0.7
 npm run contextula -- report <workspace-id>
+npm run contextula -- brief <workspace-id>
 npm run contextula -- validate <workspace-id>
 npm run contextula -- approve <workspace-id> <approval-id>
 ```
@@ -63,7 +66,7 @@ npm test
 
 The intake command creates a clean customer workspace, captures a homepage research snapshot when a website is provided, derives initial claims, builds a profile, writes a modernization map, and creates a pending approval for any external outreach.
 
-The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. The `validate` command checks the portable workspace contract before later agents depend on it.
+The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. The `claims` commands expose grounded workspace memory. The `brief` command turns the current profile and strongest claims into an internal modernization brief. The `validate` command checks the portable workspace contract before later agents depend on it.
 
 ## Design principle
 

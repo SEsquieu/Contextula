@@ -73,9 +73,12 @@ npm run contextula -- brief <workspace-id>
 npm run contextula -- draft outreach <workspace-id>
 npm run contextula -- tickets generate <workspace-id>
 npm run contextula -- tickets list <workspace-id>
+npm run contextula -- design packet <workspace-id>
+npm run contextula -- design prompt <workspace-id>
 npm run contextula -- design brief <workspace-id>
 npm run contextula -- design mock <workspace-id>
 npm run contextula -- design html <workspace-id>
+npm run contextula -- design html <workspace-id> --provider json --response docs/fixtures/design-html-response-good.json
 npm run contextula -- visual snapshot <workspace-id>
 npm run contextula -- visual snapshot <workspace-id> --artifact design/mocks/homepage-v1.html
 npm run contextula -- review <workspace-id>
@@ -93,13 +96,20 @@ npm test
 
 The intake command creates a clean customer workspace, captures a homepage research snapshot when a website is provided, derives initial claims, builds a profile, writes a modernization map, and creates a pending approval for any external outreach. `demo site` runs the safe internal loop end-to-end and prints the important artifacts. It does not send messages or perform external writes beyond read-only website fetches.
 
-The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. `agent providers` reports configured research providers. `agent packet` exports the bounded research packet for external brains. `agent prompt` exports a semantic research prompt around that packet. `agent research` is the first brains socket: it runs a bounded research provider against a prepared workspace packet, archives the provider run under `research/provider-runs/`, and writes observations, claims, and an agent research brief. `portfolio` writes a data-home-level portfolio report, while `dashboard` creates a static per-workspace HTML dashboard. `state` materializes a compact workspace state summary, and `timeline` inspects the append-only event stream. The `claims` commands expose grounded workspace memory. The `brief` command turns the current profile and strongest claims into an internal modernization brief. The `draft outreach` command creates a draft artifact and a pending approval gate, but does not send anything. The `tickets` commands turn workspace context into small modernization tasks. The `design` commands generate context-grounded briefs and first-pass markdown mocks based on claims, brand/taste signals, and approval-aware constraints. Design mocks create pending `design.review` approval gates. `visual snapshot` renders the live site or generated HTML artifact with Playwright and stores screenshots, DOM text, metadata, and a visual-analysis prompt under `visual/snapshots/`. Design critique records taste feedback as durable claims, and design revise uses that feedback to create a revised mock. `preferences` materializes taste/personality signals into `memory/preferences.json`. The `validate` command checks the portable workspace contract before later agents depend on it.
+The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. `agent providers` reports configured research and design providers. `agent packet` exports the bounded research packet for external brains. `agent prompt` exports a semantic research prompt around that packet. `agent research` is the first brains socket: it runs a bounded research provider against a prepared workspace packet, archives the provider run under `research/provider-runs/`, and writes observations, claims, and an agent research brief. `portfolio` writes a data-home-level portfolio report, while `dashboard` creates a static per-workspace HTML dashboard. `state` materializes a compact workspace state summary, and `timeline` inspects the append-only event stream. The `claims` commands expose grounded workspace memory. The `brief` command turns the current profile and strongest claims into an internal modernization brief. The `draft outreach` command creates a draft artifact and a pending approval gate, but does not send anything. The `tickets` commands turn workspace context into small modernization tasks. The `design` commands generate context-grounded briefs and first-pass markdown mocks based on claims, brand/taste signals, and approval-aware constraints. `design packet` and `design prompt` build the full semantic+visual context packet for model-backed design generation, while `design html --provider json|openclaw` archives design provider runs under `design/provider-runs/`. Design mocks create pending `design.review` approval gates. `visual snapshot` renders the live site or generated HTML artifact with Playwright and stores screenshots, DOM text, metadata, and a visual-analysis prompt under `visual/snapshots/`. Design critique records taste feedback as durable claims, and design revise uses that feedback to create a revised mock. `preferences` materializes taste/personality signals into `memory/preferences.json`. The `validate` command checks the portable workspace contract before later agents depend on it.
 
 OpenClaw provider handoff is configured with:
 
 ```bash
 CONTEXTULA_OPENCLAW_RESEARCH_COMMAND="your-command-that-reads-stdin-and-writes-json"
 npm run contextula -- agent research <workspace-id> --provider openclaw
+```
+
+Model-backed design uses the same pattern:
+
+```bash
+CONTEXTULA_OPENCLAW_DESIGN_COMMAND="your-command-that-reads-stdin-and-writes-design-json"
+npm run contextula -- design html <workspace-id> --provider openclaw --variant model-v1
 ```
 
 ## Design principle

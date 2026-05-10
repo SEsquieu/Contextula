@@ -79,10 +79,16 @@ try {
   if (!tickets.includes('Confirm site identity')) throw new Error(`Ticket listing failed: ${tickets}`);
   const designBrief = await run(['design', 'brief', workspaceId, '--home', home]);
   if (!designBrief.includes('design brief:')) throw new Error(`Design brief failed: ${designBrief}`);
+  const designPacket = await run(['design', 'packet', workspaceId, '--home', home]);
+  if (!designPacket.includes('contextula.design.packet')) throw new Error(`Design packet failed: ${designPacket}`);
+  const designPrompt = await run(['design', 'prompt', workspaceId, '--home', home]);
+  if (!designPrompt.includes('Contextula Design Generation Task')) throw new Error(`Design prompt failed: ${designPrompt}`);
   const designMock = await run(['design', 'mock', workspaceId, '--home', home]);
   if (!designMock.includes('design mock:')) throw new Error(`Design mock failed: ${designMock}`);
   const designHtml = await run(['design', 'html', workspaceId, '--home', home]);
   if (!designHtml.includes('design html:')) throw new Error(`Design html failed: ${designHtml}`);
+  const providerDesignHtml = await run(['design', 'html', workspaceId, '--home', home, '--provider', 'json', '--response', path.resolve('docs/fixtures/design-html-response-good.json'), '--variant', 'provider-fixture']);
+  if (!providerDesignHtml.includes('provider run: design/provider-runs/drun_')) throw new Error(`Provider design html failed: ${providerDesignHtml}`);
   const designHtmlAgain = await run(['design', 'html', workspaceId, '--home', home]);
   if (designHtml.match(/approval: (appr_[^\s]+)/)?.[1] !== designHtmlAgain.match(/approval: (appr_[^\s]+)/)?.[1]) throw new Error('Design HTML regenerated a duplicate pending approval for the same artifact');
   const review = await run(['review', workspaceId, '--home', home]);

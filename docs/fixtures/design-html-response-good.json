@@ -1,0 +1,4 @@
+{
+  "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Fixture Design</title><style>body{margin:0;background:#050806;color:#b6ff9f;font-family:monospace}.shell{border:1px solid #39ff14;margin:40px;padding:24px}</style></head><body><main class=\"shell\"><p>MODEL BACKED FIXTURE DESIGN</p><h1>Notes, projects, and experiments.</h1></main></body></html>",
+  "rationale": "Fixture response for provider-backed design generation."
+}

@@ -1,4 +1,31 @@
 {
-  "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Fixture Design</title><style>body{margin:0;background:#050806;color:#b6ff9f;font-family:monospace}.shell{border:1px solid #39ff14;margin:40px;padding:24px}</style></head><body><main class=\"shell\"><p>MODEL BACKED FIXTURE DESIGN</p><h1>Notes, projects, and experiments.</h1></main></body></html>",
-  "rationale": "Fixture response for provider-backed design generation."
+  "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"><title>Fixture Design</title><style>body{margin:0;background:#050806;color:#b6ff9f;font-family:monospace}.shell{border:1px solid #39ff14;margin:40px;padding:24px}</style></head><body><main id=\"hero\" class=\"shell\"><p>MODEL BACKED FIXTURE DESIGN</p><h1>Notes, projects, and experiments.</h1><a href=\"#hero\" data-cta=\"primary-action\">Primary action</a></main></body></html>",
+  "rationale": "Fixture response for provider-backed design generation.",
+  "ops": {
+    "conversionGoals": [
+      {
+        "id": "primary-action",
+        "label": "Primary action click",
+        "selector": "[data-cta='primary-action']",
+        "event": "primary_action_clicked"
+      }
+    ],
+    "sections": [
+      {
+        "id": "hero",
+        "purpose": "Orient visitors and expose the primary action."
+      }
+    ],
+    "suggestedEvents": [
+      {
+        "event": "primary_action_clicked",
+        "selector": "[data-cta='primary-action']",
+        "purpose": "Measure primary CTA engagement."
+      }
+    ],
+    "integrationHooks": [],
+    "contentSlots": [],
+    "futureVariants": [],
+    "assumptions": []
+  }
 }

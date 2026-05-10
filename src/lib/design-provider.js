@@ -55,14 +55,27 @@ export async function buildDesignPacket(home, workspaceId, { variant = 'provider
 }
 
 export function designPrompt(packet) {
-  return `# Contextula Design Generation Task\n\nYou are the design generation provider for Contextula.\n\nReturn ONLY valid JSON matching this shape:\n\n\`\`\`json\n{\n  "html": "<!doctype html>...single-file static HTML...",\n  "rationale": "Short rationale grounded in packet claims and visual context."\n}\n\`\`\`\n\nRules:\n\n- Stay inside the provided packet. Do not invent credentials, reviews, guarantees, or external facts.\n- Generate a complete single-file HTML document with embedded CSS.\n- Preserve visual identity from visual claims/snapshots.\n- Avoid generic SaaS/startup landing-page patterns unless the packet supports them.\n- Do not include external scripts, tracking, forms that submit, or remote assets.\n- Customer-facing presentation still requires Contextula approval.\n\nPacket:\n\n\`\`\`json\n${JSON.stringify(packet, null, 2)}\n\`\`\`\n`;
+  return `# Contextula Design Generation Task\n\nYou are the design generation provider for Contextula.\n\nReturn ONLY valid JSON matching this shape:\n\n\`\`\`json\n{\n  "html": "<!doctype html>...single-file static HTML...",\n  "rationale": "Short rationale grounded in packet claims and visual context.",\n  "ops": {\n    "conversionGoals": [\n      { "id": "primary-action", "label": "Primary visitor action", "selector": "[data-cta='primary-action']", "event": "primary_action_clicked" }\n    ],\n    "sections": [\n      { "id": "hero", "purpose": "Orient visitors and route primary intent" }\n    ],\n    "suggestedEvents": [\n      { "event": "primary_action_clicked", "selector": "[data-cta='primary-action']", "purpose": "Measure primary CTA engagement" }\n    ],\n    "integrationHooks": [],\n    "contentSlots": [],\n    "futureVariants": [],\n    "assumptions": []\n  }\n}\n\`\`\`\n\nRules:\n\n- Stay inside the provided packet. Do not invent credentials, reviews, guarantees, or external facts.\n- Generate a complete single-file HTML document with embedded CSS.\n- Preserve visual identity from visual claims/snapshots.\n- Avoid generic SaaS/startup landing-page patterns unless the packet supports them.\n- Do not include external scripts, tracking, forms that submit, or remote assets.\n- Design this as an operable business surface: use stable section ids, CTA data attributes, and meaningful ops metadata.\n- Customer-facing presentation still requires Contextula approval.\n\nPacket:\n\n\`\`\`json\n${JSON.stringify(packet, null, 2)}\n\`\`\`\n`;
 }
 
 function validateDesignResponse(response) {
   if (!response || typeof response !== 'object' || Array.isArray(response)) throw new Error('Design provider response must be an object');
   if (!response.html || typeof response.html !== 'string') throw new Error('Design provider response field "html" must be a non-empty string');
   if (!/<!doctype html/i.test(response.html) && !/<html/i.test(response.html)) throw new Error('Design provider html must look like a complete HTML document');
-  return { html: response.html, rationale: typeof response.rationale === 'string' ? response.rationale : '' };
+  const ops = response.ops && typeof response.ops === 'object' && !Array.isArray(response.ops) ? response.ops : {};
+  return {
+    html: response.html,
+    rationale: typeof response.rationale === 'string' ? response.rationale : '',
+    ops: {
+      conversionGoals: Array.isArray(ops.conversionGoals) ? ops.conversionGoals : [],
+      sections: Array.isArray(ops.sections) ? ops.sections : [],
+      suggestedEvents: Array.isArray(ops.suggestedEvents) ? ops.suggestedEvents : [],
+      integrationHooks: Array.isArray(ops.integrationHooks) ? ops.integrationHooks : [],
+      contentSlots: Array.isArray(ops.contentSlots) ? ops.contentSlots : [],
+      futureVariants: Array.isArray(ops.futureVariants) ? ops.futureVariants : [],
+      assumptions: Array.isArray(ops.assumptions) ? ops.assumptions : []
+    }
+  };
 }
 
 async function rawDesignOutput(provider, packet, { response, command }, prompt) {
@@ -104,9 +117,11 @@ export async function runDesignHtmlProvider(home, workspaceId, { provider = 'jso
   }
 
   const artifact = `design/mocks/homepage-${variant}.html`;
+  const opsArtifact = `design/mocks/homepage-${variant}.ops.json`;
   await writeFile(path.join(root, artifact), result.html, 'utf8');
+  await writeFile(path.join(root, opsArtifact), `${JSON.stringify({ version: 1, generatedAt: now(), artifact, providerRun: runArtifact, ops: result.ops }, null, 2)}\n`, 'utf8');
   await writeFile(path.join(runDir, 'rationale.md'), result.rationale || '(none)', 'utf8');
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.html.provider_generated', at: now(), provider, artifact, providerRun: runArtifact, variant, classification: packet.classification.kind });
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.html.provider_generated', at: now(), provider, artifact, opsArtifact, providerRun: runArtifact, variant, classification: packet.classification.kind });
   const approvalResult = await createApproval(root, {
     id: id('appr'),
     version: VERSION,
@@ -117,5 +132,5 @@ export async function runDesignHtmlProvider(home, workspaceId, { provider = 'jso
     artifact,
     reason: 'Provider-backed HTML design mocks require review before customer-facing presentation or implementation.'
   });
-  return { artifact, html: result.html, rationale: result.rationale, providerRun: runArtifact, approval: approvalResult.approval };
+  return { artifact, opsArtifact, html: result.html, rationale: result.rationale, ops: result.ops, providerRun: runArtifact, approval: approvalResult.approval };
 }

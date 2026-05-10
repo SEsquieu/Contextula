@@ -238,6 +238,7 @@ async function createDesignHtml(home, workspaceId, flags) {
   if (provider !== 'static') {
     const result = await runDesignHtmlProvider(home, workspaceId, { provider, response: flags.response, command: flags.command, variant: flags.variant || 'provider-v1' });
     console.log(`design html: ${result.artifact}`);
+    console.log(`ops: ${result.opsArtifact}`);
     console.log(`provider run: ${result.providerRun}`);
     console.log(`approval: ${result.approval.id}`);
     return;

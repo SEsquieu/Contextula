@@ -90,6 +90,7 @@ try {
   const providerDesignHtml = await run(['design', 'html', workspaceId, '--home', home, '--provider', 'json', '--response', path.resolve('docs/fixtures/design-html-response-good.json'), '--variant', 'provider-fixture']);
   if (!providerDesignHtml.includes('provider run: design/provider-runs/drun_')) throw new Error(`Provider design html failed: ${providerDesignHtml}`);
   if (!providerDesignHtml.includes('approval:')) throw new Error(`Provider design html did not create approval: ${providerDesignHtml}`);
+  if (!providerDesignHtml.includes('ops: design/mocks/homepage-provider-fixture.ops.json')) throw new Error(`Provider design html did not create ops sidecar: ${providerDesignHtml}`);
   const designHtmlAgain = await run(['design', 'html', workspaceId, '--home', home]);
   if (designHtml.match(/approval: (appr_[^\s]+)/)?.[1] !== designHtmlAgain.match(/approval: (appr_[^\s]+)/)?.[1]) throw new Error('Design HTML regenerated a duplicate pending approval for the same artifact');
   const visualReference = await run(['visual', 'reference', workspaceId, '--home', home, '--image', path.resolve('docs/fixtures/provider-response-good.json'), '--note', 'Smoke-test visual reference placeholder.']);

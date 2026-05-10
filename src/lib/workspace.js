@@ -9,6 +9,7 @@ export async function initWorkspaceDirs(root) {
     'research/extracted',
     'research/snapshots',
     'plans',
+    'tickets',
     'drafts',
     'approvals',
     'reports',

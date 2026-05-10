@@ -15,6 +15,7 @@ const requiredWorkspaceDirs = [
   'memory',
   'research/extracted',
   'plans',
+  'tickets',
   'drafts',
   'approvals',
   'reports',

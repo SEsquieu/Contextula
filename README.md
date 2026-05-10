@@ -55,6 +55,8 @@ npm run contextula -- claim add <workspace-id> --text "Customer prefers phone ca
 npm run contextula -- report <workspace-id>
 npm run contextula -- brief <workspace-id>
 npm run contextula -- draft outreach <workspace-id>
+npm run contextula -- tickets generate <workspace-id>
+npm run contextula -- tickets list <workspace-id>
 npm run contextula -- validate <workspace-id>
 npm run contextula -- approve <workspace-id> <approval-id>
 ```
@@ -67,7 +69,7 @@ npm test
 
 The intake command creates a clean customer workspace, captures a homepage research snapshot when a website is provided, derives initial claims, builds a profile, writes a modernization map, and creates a pending approval for any external outreach.
 
-The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. The `claims` commands expose grounded workspace memory. The `brief` command turns the current profile and strongest claims into an internal modernization brief. The `draft outreach` command creates a draft artifact and a pending approval gate, but does not send anything. The `validate` command checks the portable workspace contract before later agents depend on it.
+The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. The `claims` commands expose grounded workspace memory. The `brief` command turns the current profile and strongest claims into an internal modernization brief. The `draft outreach` command creates a draft artifact and a pending approval gate, but does not send anything. The `tickets` commands turn workspace context into small modernization tasks. The `validate` command checks the portable workspace contract before later agents depend on it.
 
 ## Design principle
 

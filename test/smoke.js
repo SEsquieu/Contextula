@@ -37,6 +37,10 @@ try {
   if (!brief.includes('Modernization Brief')) throw new Error(`Brief generation failed: ${brief}`);
   const draft = await run(['draft', 'outreach', workspaceId, '--home', home]);
   if (!draft.includes('approval:')) throw new Error(`Draft approval was not created: ${draft}`);
+  const generatedTickets = await run(['tickets', 'generate', workspaceId, '--home', home]);
+  if (!generatedTickets.includes('generated')) throw new Error(`Ticket generation failed: ${generatedTickets}`);
+  const tickets = await run(['tickets', 'list', workspaceId, '--home', home]);
+  if (!tickets.includes('Confirm customer identity')) throw new Error(`Ticket listing failed: ${tickets}`);
   const validation = await run(['validate', workspaceId, '--home', home]);
   if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);

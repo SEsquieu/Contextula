@@ -9,7 +9,8 @@
   },
   "scripts": {
     "contextula": "node ./src/cli.js",
-    "smoke": "node ./src/cli.js --help && node ./src/cli.js init --home ./.tmp-contextula && node ./src/cli.js intake customer --home ./.tmp-contextula --name \"Example Plumbing\" --website \"https://example.com\" && node ./src/cli.js list --home ./.tmp-contextula"
+    "smoke": "node ./test/smoke.js",
+    "test": "npm run smoke"
   },
   "engines": {
     "node": ">=20"

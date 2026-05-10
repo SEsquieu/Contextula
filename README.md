@@ -48,6 +48,15 @@ npm run contextula -- init
 npm run contextula -- intake customer --name "Joe's Plumbing" --website "https://example.com"
 npm run contextula -- list
 npm run contextula -- show <workspace-id>
+npm run contextula -- approvals <workspace-id>
+npm run contextula -- report <workspace-id>
+npm run contextula -- approve <workspace-id> <approval-id>
+```
+
+Run the smoke test with:
+
+```bash
+npm test
 ```
 
 The intake command creates a clean customer workspace, captures a homepage research snapshot when a website is provided, derives initial claims, builds a profile, writes a modernization map, and creates a pending approval for any external outreach.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdir, readFile, writeFile, appendFile, access } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, appendFile, access, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
@@ -346,16 +346,83 @@ async function listWorkspaces(home) {
 }
 
 async function showWorkspace(home, workspaceId) {
-  const registry = await loadRegistry(home);
-  const record = registry.workspaces.find((ws) => ws.id === workspaceId || ws.slug === workspaceId);
-  if (!record) throw new Error(`Workspace not found: ${workspaceId}`);
-  const root = path.join(home, record.path);
+  const { record, root } = await resolveWorkspace(home, workspaceId);
   const profile = await readJson(path.join(root, 'profile.json'), {});
   console.log(JSON.stringify({ record, profile, root }, null, 2));
 }
 
+async function resolveWorkspace(home, workspaceId) {
+  const registry = await loadRegistry(home);
+  const record = registry.workspaces.find((ws) => ws.id === workspaceId || ws.slug === workspaceId);
+  if (!record) throw new Error(`Workspace not found: ${workspaceId}`);
+  return { record, root: path.join(home, record.path) };
+}
+
+async function listApprovals(home, workspaceId) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  const approvalsDir = path.join(root, 'approvals');
+  const files = (await readdir(approvalsDir)).filter((file) => file.endsWith('.json'));
+  if (files.length === 0) {
+    console.log(`No approvals for ${record.name || record.slug}.`);
+    return;
+  }
+  for (const file of files) {
+    const approval = await readJson(path.join(approvalsDir, file), {});
+    console.log(`${approval.id}\t${approval.status}\t${approval.type}\t${approval.artifact || ''}`);
+  }
+}
+
+async function setApprovalStatus(home, workspaceId, approvalId, status) {
+  const { root } = await resolveWorkspace(home, workspaceId);
+  const approvalsDir = path.join(root, 'approvals');
+  const files = (await readdir(approvalsDir)).filter((file) => file.endsWith('.json'));
+  const file = files.find((candidate) => candidate === `${approvalId}.json` || candidate.startsWith(`${approvalId}.`));
+  if (!file) throw new Error(`Approval not found: ${approvalId}`);
+  const approvalPath = path.join(approvalsDir, file);
+  const approval = await readJson(approvalPath, {});
+  approval.status = status;
+  approval.resolvedAt = now();
+  await writeJson(approvalPath, approval);
+  await appendJsonl(path.join(root, 'timeline.jsonl'), {
+    id: id('evt'),
+    type: `approval.${status}`,
+    at: now(),
+    approvalId: approval.id,
+    action: approval.type,
+    artifact: approval.artifact || null
+  });
+  console.log(`${status}: ${approval.id}`);
+}
+
+async function readJsonl(file) {
+  if (!(await exists(file))) return [];
+  const content = await readFile(file, 'utf8');
+  return content.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
+}
+
+async function generateReport(home, workspaceId) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  const profile = await readJson(path.join(root, 'profile.json'), {});
+  const timeline = await readJsonl(path.join(root, 'timeline.jsonl'));
+  const claims = await readJsonl(path.join(root, 'memory', 'claims.jsonl'));
+  const approvalFiles = (await readdir(path.join(root, 'approvals'))).filter((file) => file.endsWith('.json'));
+  const approvals = [];
+  for (const file of approvalFiles) approvals.push(await readJson(path.join(root, 'approvals', file), {}));
+
+  const pendingApprovals = approvals.filter((approval) => approval.status === 'pending');
+  const latestEvents = timeline.slice(-8).map((event) => `- ${event.at} — ${event.type}`).join('\n') || '- No events yet.';
+  const activeClaims = claims.filter((claim) => claim.status === 'active');
+  const claimLines = activeClaims.slice(0, 10).map((claim) => `- ${claim.text} (${Math.round((claim.confidence || 0) * 100)}%)`).join('\n') || '- No active claims yet.';
+  const approvalLines = pendingApprovals.map((approval) => `- ${approval.id}: ${approval.type} → ${approval.artifact || '(no artifact)'}`).join('\n') || '- No pending approvals.';
+
+  const report = `# Workspace Status Report\n\nWorkspace: ${record.name || record.slug}\nID: ${record.id}\nGenerated: ${now()}\n\n## Profile\n\n- Website: ${profile.website || '(none)'}\n- Status: ${record.status}\n- Homepage captured: ${profile.currentDigitalPresence?.websiteSnapshotCaptured ? 'yes' : 'no'}\n\n## Active claims\n\n${claimLines}\n\n## Pending approvals\n\n${approvalLines}\n\n## Recent timeline\n\n${latestEvents}\n`;
+  await writeFile(path.join(root, 'reports', 'current-status.md'), report, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'report.generated', at: now(), artifact: 'reports/current-status.md' });
+  console.log(report);
+}
+
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
 }
 
 async function main() {
@@ -373,6 +440,10 @@ async function main() {
   if (cmd === 'intake' && subcmd === 'customer') return intakeCustomer(home, flags);
   if (cmd === 'list') return listWorkspaces(home);
   if (cmd === 'show') return showWorkspace(home, subcmd || maybeId);
+  if (cmd === 'approvals') return listApprovals(home, subcmd);
+  if (cmd === 'approve') return setApprovalStatus(home, subcmd, maybeId, 'approved');
+  if (cmd === 'reject') return setApprovalStatus(home, subcmd, maybeId, 'rejected');
+  if (cmd === 'report') return generateReport(home, subcmd);
 
   help();
   process.exitCode = 1;

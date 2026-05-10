@@ -41,6 +41,10 @@ try {
   if (!generatedTickets.includes('generated')) throw new Error(`Ticket generation failed: ${generatedTickets}`);
   const tickets = await run(['tickets', 'list', workspaceId, '--home', home]);
   if (!tickets.includes('Confirm customer identity')) throw new Error(`Ticket listing failed: ${tickets}`);
+  const dashboard = await run(['dashboard', workspaceId, '--home', home]);
+  if (!dashboard.includes('dashboard:')) throw new Error(`Dashboard generation failed: ${dashboard}`);
+  const portfolio = await run(['portfolio', '--home', home]);
+  if (!portfolio.includes('Contextula Portfolio')) throw new Error(`Portfolio generation failed: ${portfolio}`);
   const validation = await run(['validate', workspaceId, '--home', home]);
   if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);

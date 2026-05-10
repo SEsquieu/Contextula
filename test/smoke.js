@@ -55,7 +55,14 @@ try {
   const badProviderResponse = path.join(home, 'bad-provider-response.json');
   await writeFile(badProviderResponse, JSON.stringify({ observations: [{ confidence: 0.5 }] }), 'utf8');
   await expectFail(['agent', 'research', workspaceId, '--home', home, '--provider', 'json', '--response', badProviderResponse], 'observations[0].text');
+  const goodProviderResponse = path.resolve('docs/fixtures/provider-response-good.json');
+  const jsonResearch = await run(['agent', 'research', workspaceId, '--home', home, '--provider', 'json', '--response', goodProviderResponse]);
+  if (!jsonResearch.includes('1 new claim')) throw new Error(`JSON provider fixture did not add a claim: ${jsonResearch}`);
+  const jsonResearchAgain = await run(['agent', 'research', workspaceId, '--home', home, '--provider', 'json', '--response', goodProviderResponse]);
+  if (!jsonResearchAgain.includes('1 duplicate claim')) throw new Error(`JSON provider fixture did not dedupe duplicate claim: ${jsonResearchAgain}`);
   await run(['claim', 'add', workspaceId, '--home', home, '--text', 'Manual smoke-test claim for workspace memory.', '--confidence', '0.7', '--source', 'test']);
+  const duplicateManualClaim = await run(['claim', 'add', workspaceId, '--home', home, '--text', 'Manual smoke-test claim for workspace memory.', '--confidence', '0.9', '--source', 'test']);
+  if (!duplicateManualClaim.includes('duplicate skipped')) throw new Error(`Manual duplicate claim was not skipped: ${duplicateManualClaim}`);
   const claims = await run(['claims', workspaceId, '--home', home]);
   if (!claims.includes('Manual smoke-test claim')) throw new Error(`Manual claim missing: ${claims}`);
   await run(['report', workspaceId, '--home', home]);

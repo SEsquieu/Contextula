@@ -4,6 +4,7 @@ import { appendJsonl, id, now, readJson, readJsonl } from '../util.js';
 import { resolveWorkspace } from '../storage.js';
 import { runProviderCommand } from '../provider-command.js';
 import { validateProviderResponse } from '../provider-response.js';
+import { addClaim } from '../claims.js';
 
 function clampConfidence(value, fallback = 0.5) {
   const number = Number(value);
@@ -188,15 +189,17 @@ export async function runResearchAgent(home, workspaceId, { provider = 'static',
     });
   }
 
+  const writtenClaims = [];
+  let duplicateClaims = 0;
   for (const claim of result.claims || []) {
-    await appendJsonl(path.join(root, 'memory', 'claims.jsonl'), {
-      id: id('claim'),
-      at: now(),
+    const written = await addClaim(root, {
       text: claim.text,
       source: claim.source || 'agent research',
       confidence: clampConfidence(claim.confidence),
       status: 'active'
     });
+    writtenClaims.push(written);
+    if (written.duplicate) duplicateClaims++;
   }
 
   const brief = `# Agent Research Brief\n\nWorkspace: ${record.name || record.slug}\nProvider: ${provider}\nGenerated: ${now()}\n\n## Observations\n\n${(result.observations || []).map((item) => `- ${item.text}\n  - Source: ${item.source || 'agent'}\n  - Confidence: ${Math.round(clampConfidence(item.confidence) * 100)}%`).join('\n') || '- None.'}\n\n## New claims\n\n${(result.claims || []).map((item) => `- ${item.text}\n  - Source: ${item.source || 'agent research'}\n  - Confidence: ${Math.round(clampConfidence(item.confidence) * 100)}%`).join('\n') || '- None.'}\n\n## Recommended next steps\n\n${(result.recommendedNextSteps || []).map((item) => `- **${item.title}** — ${item.rationale}`).join('\n') || '- None.'}\n\n## Open questions\n\n${(result.openQuestions || []).map((question) => `- ${question}`).join('\n') || '- None.'}\n`;
@@ -209,9 +212,10 @@ export async function runResearchAgent(home, workspaceId, { provider = 'static',
     at: now(),
     provider,
     observations: result.observations?.length || 0,
-    claims: result.claims?.length || 0,
+    claims: writtenClaims.filter((claim) => !claim.duplicate).length,
+    duplicateClaims,
     artifact
   });
 
-  return { ...result, artifact, brief };
+  return { ...result, claims: writtenClaims, duplicateClaims, artifact, brief };
 }

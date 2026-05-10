@@ -152,7 +152,8 @@ async function exportAgentPrompt(home, workspaceId) {
 
 async function runAgentResearch(home, workspaceId, flags) {
   const result = await runResearchAgent(home, workspaceId, { provider: flags.provider || 'static', response: flags.response });
-  console.log(`agent research complete: ${result.observations?.length || 0} observation(s), ${result.claims?.length || 0} claim(s)`);
+  const newClaims = (result.claims || []).filter((claim) => !claim.duplicate).length;
+  console.log(`agent research complete: ${result.observations?.length || 0} observation(s), ${newClaims} new claim(s), ${result.duplicateClaims || 0} duplicate claim(s) skipped`);
   console.log(`artifact: ${result.artifact}`);
 }
 
@@ -185,7 +186,7 @@ async function createClaim(home, workspaceId, flags) {
   const { root } = await resolveWorkspace(home, workspaceId);
   const text = flags.text || flags.claim;
   const claim = await addClaim(root, { text, confidence: flags.confidence || 0.5, source: flags.source || 'manual' });
-  console.log(`claim added: ${claim.id}`);
+  console.log(claim.duplicate ? `claim duplicate skipped: ${claim.id}` : `claim added: ${claim.id}`);
 }
 
 async function printTickets(home, workspaceId) {

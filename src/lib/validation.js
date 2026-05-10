@@ -1,7 +1,8 @@
-﻿import path from 'node:path';
-import { readdir } from 'node:fs/promises';
+import path from 'node:path';
+import { readFile, readdir } from 'node:fs/promises';
 import { exists, readJson, readJsonl } from './util.js';
 import { loadRegistry, resolveWorkspace } from './storage.js';
+import { classifyWorkspace } from './classification.js';
 
 const requiredWorkspaceFiles = [
   'workspace.json',
@@ -40,8 +41,19 @@ export async function validateWorkspace(home, workspaceId) {
   if (workspace?.id !== record.id) problems.push(`workspace id mismatch: registry=${record.id} workspace=${workspace?.id}`);
   if (profile?.workspaceId !== record.id) problems.push(`profile workspaceId mismatch: registry=${record.id} profile=${profile?.workspaceId}`);
 
+  let claims = [];
   try { await readJsonl(path.join(root, 'timeline.jsonl')); } catch (error) { problems.push(`invalid timeline jsonl: ${error.message}`); }
-  try { await readJsonl(path.join(root, 'memory', 'claims.jsonl')); } catch (error) { problems.push(`invalid claims jsonl: ${error.message}`); }
+  try { claims = await readJsonl(path.join(root, 'memory', 'claims.jsonl')); } catch (error) { problems.push(`invalid claims jsonl: ${error.message}`); }
+
+  const classification = classifyWorkspace(claims.filter((claim) => claim.status === 'active'));
+  const state = await readJson(path.join(root, 'state.json'), null);
+  if (state?.classification?.kind && state.classification.kind !== classification.kind) {
+    problems.push(`state classification stale: state=${state.classification.kind} current=${classification.kind}`);
+  }
+  const ticketsMd = await readFile(path.join(root, 'tickets', 'modernization-tickets.md'), 'utf8').catch(() => '');
+  if (ticketsMd && !ticketsMd.includes(`Classification: ${classification.label}`)) {
+    problems.push(`ticket classification stale: expected ${classification.label}`);
+  }
 
   const approvalFiles = (await readdir(path.join(root, 'approvals')).catch(() => [])).filter((file) => file.endsWith('.json'));
   for (const file of approvalFiles) {

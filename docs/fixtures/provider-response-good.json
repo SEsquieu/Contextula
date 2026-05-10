@@ -1,0 +1,25 @@
+{
+  "observations": [
+    {
+      "text": "The homepage positions the site as a personal/project hub rather than a service-business funnel.",
+      "source": "research/extracted/homepage.md",
+      "confidence": 0.72
+    }
+  ],
+  "claims": [
+    {
+      "text": "Modernization should prioritize project routing and identity continuity over quote/contact CTAs.",
+      "source": "research/extracted/homepage.md",
+      "confidence": 0.7
+    }
+  ],
+  "recommendedNextSteps": [
+    {
+      "title": "Confirm the primary visitor path",
+      "rationale": "The next design pass should route visitors to live projects, planned channels, or build notes based on the site owner's intent."
+    }
+  ],
+  "openQuestions": [
+    "Which project or channel should receive the strongest homepage emphasis?"
+  ]
+}

@@ -69,6 +69,25 @@ A provider returns JSON:
 }
 ```
 
+Contextula validates provider responses before writing durable claims/events:
+
+- top-level response must be an object
+- `observations`, `claims`, `recommendedNextSteps`, and `openQuestions` must be arrays when present
+- observation/claim `text` must be a non-empty string
+- recommended next-step `title` and `rationale` must be non-empty strings
+- confidence values are clamped to `0.0..1.0`; missing/invalid values default to `0.5`
+
+Fixtures:
+
+- `docs/fixtures/provider-response-good.json`
+- `docs/fixtures/provider-response-bad-missing-text.json`
+
+Quick local check:
+
+```bash
+contextula agent research <workspace-id> --provider json --response docs/fixtures/provider-response-good.json
+```
+
 ## Safety rules
 
 - Providers may recommend, summarize, and draft findings.

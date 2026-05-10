@@ -1,0 +1,11 @@
+{
+  "observations": [
+    {
+      "source": "research/extracted/homepage.md",
+      "confidence": 0.72
+    }
+  ],
+  "claims": [],
+  "recommendedNextSteps": [],
+  "openQuestions": []
+}

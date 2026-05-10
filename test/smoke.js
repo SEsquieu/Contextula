@@ -95,6 +95,8 @@ try {
   if (designHtml.match(/approval: (appr_[^\s]+)/)?.[1] !== designHtmlAgain.match(/approval: (appr_[^\s]+)/)?.[1]) throw new Error('Design HTML regenerated a duplicate pending approval for the same artifact');
   const visualReference = await run(['visual', 'reference', workspaceId, '--home', home, '--image', path.resolve('docs/fixtures/provider-response-good.json'), '--note', 'Smoke-test visual reference placeholder.']);
   if (!visualReference.includes('visual reference:')) throw new Error(`Visual reference failed: ${visualReference}`);
+  const sitePlan = await run(['site', 'plan', workspaceId, '--home', home]);
+  if (!sitePlan.includes('site plan:') || !sitePlan.includes('approval:')) throw new Error(`Site plan failed: ${sitePlan}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

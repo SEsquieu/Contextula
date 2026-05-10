@@ -2,6 +2,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, slugify, VERSION, writeJson } from './util.js';
 import { ensureHome, loadRegistry, saveRegistry, workspacePath } from './storage.js';
+import { normalizeWebsite } from './url.js';
 
 export async function initWorkspaceDirs(root) {
   const dirs = [
@@ -27,6 +28,12 @@ export async function initWorkspaceDirs(root) {
 
 export async function createCustomer(home, input) {
   await ensureHome(home);
+  const website = normalizeWebsite(input.website);
+  const registry = await loadRegistry(home);
+  const duplicate = website ? registry.workspaces.find((workspace) => workspace.website === website) : null;
+  if (duplicate && !input.allowDuplicate) {
+    throw new Error(`Workspace already exists for ${website}: ${duplicate.id}. Pass --allow-duplicate to create another.`);
+  }
   const workspaceId = id('cus');
   const slug = slugify(input.name);
   const root = workspacePath(home, 'customer', workspaceId);
@@ -48,7 +55,7 @@ export async function createCustomer(home, input) {
     version: VERSION,
     workspaceId,
     name: input.name,
-    website: input.website || null,
+    website,
     category: null,
     serviceArea: [],
     contact: {},
@@ -75,16 +82,15 @@ export async function createCustomer(home, input) {
     at: now(),
     source: input.source || 'manual',
     name: input.name,
-    website: input.website || null
+    website
   });
-
-  const registry = await loadRegistry(home);
   registry.workspaces.push({
     id: workspaceId,
     type: 'customer',
     slug,
     name: input.name,
     path: path.relative(home, root),
+    website,
     status: workspace.status,
     createdAt: workspace.createdAt,
     updatedAt: workspace.updatedAt

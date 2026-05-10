@@ -17,6 +17,8 @@ async function run(args) {
 try {
   await run(['--help']);
   await run(['init', '--home', home]);
+  const demo = await run(['demo', 'site', '--home', home, '--name', 'Demo Plumbing', '--website', 'example.org', '--max-pages', '1']);
+  if (!demo.includes('No external messages sent')) throw new Error(`Demo flow failed: ${demo}`);
   const created = await run(['intake', 'customer', '--home', home, '--name', 'Example Plumbing', '--website', 'https://example.com']);
   const workspaceId = created.match(/cus_[^\s]+/)?.[0];
   if (!workspaceId) throw new Error(`Could not parse workspace id from: ${created}`);
@@ -70,6 +72,8 @@ try {
   const validation = await run(['validate', workspaceId, '--home', home]);
   if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);
+  const artifacts = await run(['artifacts', workspaceId, '--home', home]);
+  if (!artifacts.includes('reports/dashboard.html')) throw new Error(`Artifact summary failed: ${artifacts}`);
   const approvalsAfter = await run(['approvals', workspaceId, '--home', home]);
   if (!approvalsAfter.includes('approved')) throw new Error('Approval did not update to approved');
 

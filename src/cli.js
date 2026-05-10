@@ -4,6 +4,7 @@ import { ensureHome, resolveWorkspace } from './lib/storage.js';
 import { createCustomer, listWorkspaces, readProfile, writeProfile } from './lib/workspace.js';
 import { researchHomepage, researchWebsite } from './lib/research.js';
 import { buildPlan, createApproval } from './lib/planning.js';
+import { formatArtifactSummary, listArtifacts } from './lib/artifacts.js';
 import { listApprovals, setApprovalStatus } from './lib/approvals.js';
 import { addClaim, listClaims } from './lib/claims.js';
 import { runResearchAgent, writeResearchPacket } from './lib/agents/research-agent.js';
@@ -20,7 +21,7 @@ import { validateHome, validateWorkspace } from './lib/validation.js';
 
 async function intakeCustomer(home, flags) {
   if (!flags.name) throw new Error('Missing --name');
-  const { workspaceId, root } = await createCustomer(home, { name: flags.name, website: flags.website, source: flags.source || 'manual' });
+  const { workspaceId, root } = await createCustomer(home, { name: flags.name, website: flags.website, source: flags.source || 'manual', allowDuplicate: Boolean(flags['allow-duplicate']) });
   const profile = await readProfile(root);
   const researchResult = await researchHomepage(root, profile);
   await buildPlan(root, profile, researchResult);
@@ -34,6 +35,43 @@ async function intakeCustomer(home, flags) {
   await writeProfile(root, profile);
   console.log(`Created customer workspace ${workspaceId}`);
   console.log(root);
+  console.log('No external messages sent. Approval gates created only.');
+}
+
+async function printArtifactSummary(home, workspaceId) {
+  console.log(formatArtifactSummary(await listArtifacts(home, workspaceId)));
+}
+
+async function runDemoSite(home, flags) {
+  if (!flags.name) throw new Error('Missing --name');
+  if (!flags.website) throw new Error('Missing --website');
+  const { workspaceId, root } = await createCustomer(home, { name: flags.name, website: flags.website, source: 'demo-site', allowDuplicate: Boolean(flags['allow-duplicate']) });
+  console.log(`Created demo workspace ${workspaceId}`);
+  await setWorkspaceStatus(home, workspaceId, 'researching');
+  const profile = await readProfile(root);
+  const researchResult = await researchWebsite(root, profile, { maxPages: Number(flags['max-pages'] || 4) });
+  profile.currentDigitalPresence = {
+    ...profile.currentDigitalPresence,
+    websiteSnapshotCaptured: researchResult.pages.length > 0,
+    pagesCaptured: researchResult.pages.length,
+    lastResearchAt: new Date().toISOString()
+  };
+  await writeProfile(root, profile);
+  await runResearchAgent(home, workspaceId, { provider: flags.provider || 'static' });
+  await buildPlan(root, profile, researchResult);
+  await generateBrief(home, workspaceId);
+  await generateDesignBrief(home, workspaceId);
+  await generateHomepageMock(home, workspaceId);
+  await materializePreferences(home, workspaceId);
+  await generateTickets(home, workspaceId);
+  await draftOutreach(home, workspaceId);
+  await generateDashboard(home, workspaceId);
+  await materializeWorkspaceState(home, workspaceId);
+  await setWorkspaceStatus(home, workspaceId, 'briefed');
+  const summary = await listArtifacts(home, workspaceId);
+  console.log(formatArtifactSummary(summary));
+  console.log('No external messages sent. Approval gates created only.');
+  console.log(`Workspace: ${workspaceId}`);
 }
 
 async function printStatus(home, workspaceId) {
@@ -205,7 +243,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
 }
 
 async function main() {
@@ -221,6 +259,7 @@ async function main() {
     return;
   }
   if (cmd === 'intake' && subcmd === 'customer') return intakeCustomer(home, flags);
+  if (cmd === 'demo' && subcmd === 'site') return runDemoSite(home, flags);
   if (cmd === 'agent' && subcmd === 'packet') return exportAgentPacket(home, maybeId);
   if (cmd === 'agent' && subcmd === 'research') return runAgentResearch(home, maybeId, flags);
   if (cmd === 'research') return runResearch(home, subcmd, flags);
@@ -231,6 +270,7 @@ async function main() {
   if (cmd === 'status' && subcmd === 'set') return updateStatus(home, maybeId, positional[3]);
   if (cmd === 'status') return printStatus(home, subcmd);
   if (cmd === 'preferences') return createPreferences(home, subcmd);
+  if (cmd === 'artifacts') return printArtifactSummary(home, subcmd);
   if (cmd === 'list') return printWorkspaces(home);
   if (cmd === 'show') return showWorkspace(home, subcmd || maybeId);
   if (cmd === 'approvals') return printApprovals(home, subcmd);

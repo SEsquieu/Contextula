@@ -16,6 +16,9 @@ or pass `--home <path>` on each command.
 
 ```bash
 contextula init
+contextula demo site --name "Personal Site" --website "https://example.com"
+
+# Or run the steps manually:
 contextula intake customer --name "Personal Site" --website "https://example.com"
 contextula status set <workspace> researching
 contextula research <workspace> --max-pages 4
@@ -29,6 +32,7 @@ contextula tickets generate <workspace>
 contextula draft outreach <workspace>
 contextula dashboard <workspace>
 contextula state <workspace>
+contextula artifacts <workspace>
 contextula portfolio
 ```
 

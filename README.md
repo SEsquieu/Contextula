@@ -74,6 +74,8 @@ npm run contextula -- tickets generate <workspace-id>
 npm run contextula -- tickets list <workspace-id>
 npm run contextula -- design brief <workspace-id>
 npm run contextula -- design mock <workspace-id>
+npm run contextula -- design html <workspace-id>
+npm run contextula -- review <workspace-id>
 npm run contextula -- design critique <workspace-id> --feedback "Prefer brighter, more practical styling."
 npm run contextula -- design revise <workspace-id>
 npm run contextula -- validate <workspace-id>

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, readJsonl } from '../util.js';
 import { resolveWorkspace } from '../storage.js';
+import { runProviderCommand } from '../provider-command.js';
 
 function clampConfidence(value, fallback = 0.5) {
   const number = Number(value);
@@ -95,9 +96,20 @@ async function jsonProvider(_packet, options) {
   return JSON.parse(content.replace(/^\uFEFF/, ''));
 }
 
+async function openclawProvider(packet) {
+  const command = process.env.CONTEXTULA_OPENCLAW_RESEARCH_COMMAND;
+  if (!command) {
+    throw new Error('OpenClaw provider requires CONTEXTULA_OPENCLAW_RESEARCH_COMMAND. It should read the research prompt from stdin and write provider JSON to stdout.');
+  }
+  const prompt = `Return ONLY Contextula provider JSON for this research packet.\n\n${JSON.stringify(packet, null, 2)}\n`;
+  const output = await runProviderCommand(command, prompt);
+  return JSON.parse(output.replace(/^\uFEFF/, ''));
+}
+
 function providerFor(name) {
   if (!name || name === 'static') return staticProvider;
   if (name === 'json') return jsonProvider;
+  if (name === 'openclaw') return openclawProvider;
   throw new Error(`Unknown research provider: ${name}`);
 }
 

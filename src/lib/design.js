@@ -123,3 +123,106 @@ export async function reviseHomepageMock(home, workspaceId, { from = 'design/moc
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.revised', at: now(), artifact, sourceArtifact: from, variant, classification: classification.kind });
   return { artifact, revision };
 }
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+export async function generateHomepageHtml(home, workspaceId, { variant = 'v1' } = {}) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  await mkdir(path.join(root, 'design', 'mocks'), { recursive: true });
+  const profile = await readJson(path.join(root, 'profile.json'), {});
+  const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []), 12);
+  const classification = classifyWorkspace(claims);
+  const customerName = record.name || profile.name || record.slug;
+
+  const isHub = classification.kind === 'personal-project-hub';
+  const title = isHub
+    ? `${customerName}: notes, projects, and experiments broadcasting live`
+    : `${customerName}: practical service, made easy to start`;
+  const subtitle = isHub
+    ? 'A retro signal hub for live tools, build notes, prototypes, and upcoming launch channels.'
+    : 'Clear, practical modernization copy that helps visitors understand the next step.';
+  const cards = isHub
+    ? [
+        ['LIVE DESTINATION', 'music.grinningfrog.com', 'Browser-based audio sequencer for creating and testing musical patterns.'],
+        ['INCOMING CHANNEL', 'blog.grinningfrog.com', 'Dev logs, project breakdowns, and long-form build notes.'],
+        ['LAB CHANNEL', 'lab.grinningfrog.com', 'Prototype sandbox for UI tests and one-off experiments.']
+      ]
+    : [
+        ['START', 'Clear primary action', 'Make the next step obvious and low-friction.'],
+        ['TRUST', 'Grounded proof points', 'Preserve only verified trust signals.'],
+        ['SHIP', 'Small first pass', 'Modernize one visible thing before proposing a rebuild.']
+      ];
+
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(customerName)} — Contextula Mock</title>
+  <style>
+    :root { --bg:#07120f; --panel:#10231d; --line:#255447; --text:#e9fff7; --muted:#91b9aa; --accent:#8cffc1; --hot:#f5d76e; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: ui-sans-serif, system-ui, Segoe UI, Arial; background: radial-gradient(circle at top left, #173b31, var(--bg) 45%); color:var(--text); }
+    main { max-width:1120px; margin:0 auto; padding:48px 24px; }
+    .eyebrow { color:var(--accent); letter-spacing:.18em; font-size:12px; font-weight:800; text-transform:uppercase; }
+    h1 { font-size:clamp(40px, 7vw, 82px); line-height:.95; margin:14px 0 18px; max-width:900px; }
+    .subtitle { color:var(--muted); font-size:20px; max-width:720px; line-height:1.5; }
+    .actions { display:flex; gap:12px; flex-wrap:wrap; margin:28px 0 38px; }
+    a.button { color:#062017; text-decoration:none; background:var(--accent); padding:13px 18px; border-radius:999px; font-weight:800; }
+    a.secondary { color:var(--text); background:transparent; border:1px solid var(--line); }
+    .status { border:1px solid var(--line); background:rgba(16,35,29,.74); border-radius:18px; padding:14px 16px; display:flex; gap:16px; flex-wrap:wrap; color:var(--muted); }
+    .status strong { color:var(--hot); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px; margin-top:24px; }
+    .card { border:1px solid var(--line); background:rgba(16,35,29,.82); border-radius:22px; padding:22px; min-height:180px; }
+    .card .tag { color:var(--accent); font-size:12px; font-weight:900; letter-spacing:.12em; }
+    .card h2 { margin:14px 0 10px; font-size:24px; }
+    .card p { color:var(--muted); line-height:1.55; }
+    .note { margin-top:28px; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">${escapeHtml(classification.label)} · Contextula mock ${escapeHtml(variant)}</div>
+    <h1>${escapeHtml(title)}</h1>
+    <p class="subtitle">${escapeHtml(subtitle)}</p>
+    <div class="actions">
+      <a class="button" href="#projects">${escapeHtml(classification.cta)}</a>
+      <a class="button secondary" href="#roadmap">${escapeHtml(classification.secondaryCta)}</a>
+    </div>
+    <section class="status">
+      <span><strong>SYS</strong> ONLINE</span>
+      <span><strong>MODE</strong> ${escapeHtml(classification.kind)}</span>
+      <span><strong>GOAL</strong> ${escapeHtml(classification.primaryGoal)}</span>
+    </section>
+    <section id="projects" class="grid">
+      ${cards.map(([tag, heading, body]) => `<article class="card"><div class="tag">${escapeHtml(tag)}</div><h2>${escapeHtml(heading)}</h2><p>${escapeHtml(body)}</p></article>`).join('\n      ')}
+    </section>
+    <p class="note">Generated by Contextula from grounded workspace claims. Review required before customer-facing use.</p>
+  </main>
+</body>
+</html>
+`;
+  const artifact = `design/mocks/homepage-${variant}.html`;
+  await writeFile(path.join(root, artifact), html, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.html.generated', at: now(), artifact, variant, classification: classification.kind });
+  const approval = {
+    id: id('appr'),
+    version: VERSION,
+    type: 'design.review',
+    status: 'pending',
+    requestedAt: now(),
+    requestedBy: 'contextula-design',
+    artifact,
+    reason: 'HTML design mocks require review before customer-facing presentation or implementation.'
+  };
+  await writeJson(path.join(root, 'approvals', `${approval.id}.json`), approval);
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'approval.requested', at: now(), approvalId: approval.id, action: approval.type, artifact });
+  return { artifact, html, approval };
+}

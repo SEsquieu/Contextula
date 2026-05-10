@@ -57,6 +57,10 @@ try {
   if (!designBrief.includes('design brief:')) throw new Error(`Design brief failed: ${designBrief}`);
   const designMock = await run(['design', 'mock', workspaceId, '--home', home]);
   if (!designMock.includes('design mock:')) throw new Error(`Design mock failed: ${designMock}`);
+  const designHtml = await run(['design', 'html', workspaceId, '--home', home]);
+  if (!designHtml.includes('design html:')) throw new Error(`Design html failed: ${designHtml}`);
+  const review = await run(['review', workspaceId, '--home', home]);
+  if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);
   if (!designCritique.includes('design critique:')) throw new Error(`Design critique failed: ${designCritique}`);
   const designRevision = await run(['design', 'revise', workspaceId, '--home', home]);

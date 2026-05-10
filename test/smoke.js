@@ -23,6 +23,10 @@ try {
 
   const list = await run(['list', '--home', home]);
   if (!list.includes(workspaceId)) throw new Error('Workspace missing from list output');
+  const initialStatus = await run(['status', workspaceId, '--home', home]);
+  if (!initialStatus.includes('prospect')) throw new Error(`Initial status wrong: ${initialStatus}`);
+  const changedStatus = await run(['status', 'set', workspaceId, 'researching', '--home', home]);
+  if (!changedStatus.includes('prospect -> researching')) throw new Error(`Status change failed: ${changedStatus}`);
 
   const approvals = await run(['approvals', workspaceId, '--home', home]);
   const approvalId = approvals.match(/appr_[^\s]+/)?.[0];
@@ -53,6 +57,8 @@ try {
   if (!designCritique.includes('design critique:')) throw new Error(`Design critique failed: ${designCritique}`);
   const designRevision = await run(['design', 'revise', workspaceId, '--home', home]);
   if (!designRevision.includes('design revision:')) throw new Error(`Design revision failed: ${designRevision}`);
+  const preferences = await run(['preferences', workspaceId, '--home', home]);
+  if (!preferences.includes('preferences:')) throw new Error(`Preferences failed: ${preferences}`);
   const dashboard = await run(['dashboard', workspaceId, '--home', home]);
   if (!dashboard.includes('dashboard:')) throw new Error(`Dashboard generation failed: ${dashboard}`);
   const state = await run(['state', workspaceId, '--home', home]);

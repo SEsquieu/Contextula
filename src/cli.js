@@ -10,7 +10,9 @@ import { runResearchAgent, writeResearchPacket } from './lib/agents/research-age
 import { generateDashboard } from './lib/dashboard.js';
 import { critiqueDesign, generateDesignBrief, generateHomepageMock, reviseHomepageMock } from './lib/design.js';
 import { draftOutreach } from './lib/drafts.js';
+import { getWorkspaceStatus, setWorkspaceStatus, WORKSPACE_STATUSES } from './lib/lifecycle.js';
 import { writePortfolioReport } from './lib/portfolio.js';
+import { materializePreferences } from './lib/preferences.js';
 import { generateBrief, generateReport } from './lib/reports.js';
 import { materializeWorkspaceState, readTimeline } from './lib/state.js';
 import { generateTickets, listTickets } from './lib/tickets.js';
@@ -32,6 +34,21 @@ async function intakeCustomer(home, flags) {
   await writeProfile(root, profile);
   console.log(`Created customer workspace ${workspaceId}`);
   console.log(root);
+}
+
+async function printStatus(home, workspaceId) {
+  const result = await getWorkspaceStatus(home, workspaceId);
+  console.log(`${result.record.id}\t${result.status}\t${result.record.name || result.record.slug}`);
+}
+
+async function updateStatus(home, workspaceId, status) {
+  const result = await setWorkspaceStatus(home, workspaceId, status);
+  console.log(`status: ${result.previousStatus} -> ${result.status}`);
+}
+
+async function createPreferences(home, workspaceId) {
+  const preferences = await materializePreferences(home, workspaceId);
+  console.log(`preferences: ${preferences.items.length} item(s)`);
 }
 
 async function showWorkspace(home, workspaceId) {
@@ -188,7 +205,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
 }
 
 async function main() {
@@ -211,6 +228,9 @@ async function main() {
   if (cmd === 'dashboard') return createDashboard(home, subcmd);
   if (cmd === 'state') return printState(home, subcmd);
   if (cmd === 'timeline') return printTimeline(home, subcmd, flags);
+  if (cmd === 'status' && subcmd === 'set') return updateStatus(home, maybeId, positional[3]);
+  if (cmd === 'status') return printStatus(home, subcmd);
+  if (cmd === 'preferences') return createPreferences(home, subcmd);
   if (cmd === 'list') return printWorkspaces(home);
   if (cmd === 'show') return showWorkspace(home, subcmd || maybeId);
   if (cmd === 'approvals') return printApprovals(home, subcmd);

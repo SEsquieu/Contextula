@@ -38,7 +38,7 @@ export async function createCustomer(home, input) {
     type: 'customer',
     slug,
     name: input.name,
-    status: 'active',
+    status: input.status || 'prospect',
     createdAt: now(),
     updatedAt: now(),
     source: input.source || 'manual'
@@ -85,7 +85,7 @@ export async function createCustomer(home, input) {
     slug,
     name: input.name,
     path: path.relative(home, root),
-    status: 'active',
+    status: workspace.status,
     createdAt: workspace.createdAt,
     updatedAt: workspace.updatedAt
   });

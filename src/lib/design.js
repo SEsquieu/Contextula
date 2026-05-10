@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { appendJsonl, id, now, readJson, readJsonl } from './util.js';
+import { appendJsonl, id, now, readJson, readJsonl, VERSION, writeJson } from './util.js';
 import { resolveWorkspace } from './storage.js';
 
 function topClaims(claims, limit = 10) {
@@ -54,7 +54,19 @@ export async function generateHomepageMock(home, workspaceId, { variant = 'v1' }
   const artifact = `design/mocks/homepage-${variant}.md`;
   await writeFile(path.join(root, artifact), mock, 'utf8');
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.generated', at: now(), artifact, variant });
-  return { artifact, mock };
+  const approval = {
+    id: id('appr'),
+    version: VERSION,
+    type: 'design.review',
+    status: 'pending',
+    requestedAt: now(),
+    requestedBy: 'contextula-design',
+    artifact,
+    reason: 'Design mocks require review before customer-facing presentation or implementation.'
+  };
+  await writeJson(path.join(root, 'approvals', `${approval.id}.json`), approval);
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'approval.requested', at: now(), approvalId: approval.id, action: approval.type, artifact });
+  return { artifact, mock, approval };
 }
 
 export async function critiqueDesign(home, workspaceId, { artifact = 'design/mocks/homepage-v1.md', feedback } = {}) {

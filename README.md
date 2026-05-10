@@ -25,6 +25,7 @@ It keeps customer/project context alive over time by combining bounded workspace
 - [Customer Ingestion](docs/ingestion.md)
 - [Agent Provider Contract](docs/agent-provider-contract.md)
 - [Design Lane](docs/design-lane.md)
+- [Real Site Test Workflow](docs/real-site-test-workflow.md)
 - [Original modernization concept](ai-driven-modernization-pipeline.md)
 
 ## Storage split
@@ -55,6 +56,9 @@ npm run contextula -- portfolio
 npm run contextula -- dashboard <workspace-id>
 npm run contextula -- state <workspace-id>
 npm run contextula -- timeline <workspace-id>
+npm run contextula -- status <workspace-id>
+npm run contextula -- status set <workspace-id> researching
+npm run contextula -- preferences <workspace-id>
 npm run contextula -- list
 npm run contextula -- show <workspace-id>
 npm run contextula -- approvals <workspace-id>
@@ -81,7 +85,7 @@ npm test
 
 The intake command creates a clean customer workspace, captures a homepage research snapshot when a website is provided, derives initial claims, builds a profile, writes a modernization map, and creates a pending approval for any external outreach.
 
-The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. `agent packet` exports the bounded research packet for external brains. `agent research` is the first brains socket: it runs a bounded research provider against a prepared workspace packet and writes observations, claims, and an agent research brief. `portfolio` writes a data-home-level portfolio report, while `dashboard` creates a static per-workspace HTML dashboard. `state` materializes a compact workspace state summary, and `timeline` inspects the append-only event stream. The `claims` commands expose grounded workspace memory. The `brief` command turns the current profile and strongest claims into an internal modernization brief. The `draft outreach` command creates a draft artifact and a pending approval gate, but does not send anything. The `tickets` commands turn workspace context into small modernization tasks. The `design` commands generate context-grounded briefs and first-pass markdown mocks based on claims, brand/taste signals, and approval-aware constraints. Design critique records taste feedback as durable claims, and design revise uses that feedback to create a revised mock. The `validate` command checks the portable workspace contract before later agents depend on it.
+The `research` command can revisit an existing workspace and capture a small same-domain website snapshot without crossing the workspace boundary. `agent packet` exports the bounded research packet for external brains. `agent research` is the first brains socket: it runs a bounded research provider against a prepared workspace packet and writes observations, claims, and an agent research brief. `portfolio` writes a data-home-level portfolio report, while `dashboard` creates a static per-workspace HTML dashboard. `state` materializes a compact workspace state summary, and `timeline` inspects the append-only event stream. The `claims` commands expose grounded workspace memory. The `brief` command turns the current profile and strongest claims into an internal modernization brief. The `draft outreach` command creates a draft artifact and a pending approval gate, but does not send anything. The `tickets` commands turn workspace context into small modernization tasks. The `design` commands generate context-grounded briefs and first-pass markdown mocks based on claims, brand/taste signals, and approval-aware constraints. Design mocks create pending `design.review` approval gates. Design critique records taste feedback as durable claims, and design revise uses that feedback to create a revised mock. `preferences` materializes taste/personality signals into `memory/preferences.json`. The `validate` command checks the portable workspace contract before later agents depend on it.
 
 ## Design principle
 

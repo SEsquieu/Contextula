@@ -28,7 +28,10 @@ try {
   const approvalId = approvals.match(/appr_[^\s]+/)?.[0];
   if (!approvalId) throw new Error(`Could not parse approval id from: ${approvals}`);
 
+  await run(['research', workspaceId, '--home', home, '--max-pages', '1']);
   await run(['report', workspaceId, '--home', home]);
+  const validation = await run(['validate', workspaceId, '--home', home]);
+  if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);
   const approvalsAfter = await run(['approvals', workspaceId, '--home', home]);
   if (!approvalsAfter.includes('approved')) throw new Error('Approval did not update to approved');

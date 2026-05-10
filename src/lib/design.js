@@ -2,6 +2,7 @@ import path from 'node:path';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, readJsonl, VERSION, writeJson } from './util.js';
 import { resolveWorkspace } from './storage.js';
+import { classifyWorkspace } from './classification.js';
 
 function topClaims(claims, limit = 10) {
   return claims
@@ -13,9 +14,12 @@ function topClaims(claims, limit = 10) {
 function designSignals(claims) {
   const text = claims.map((claim) => claim.text).join(' ').toLowerCase();
   const signals = [];
+  if (/project hub|personal\/project|build-in-public|build in public|experiments|subdomain|music\.grinningfrog|blog\.grinningfrog|lab\.grinningfrog/.test(text)) signals.push('project-hub navigation and identity');
+  if (/retro|transmission|signal|technical|playful/.test(text)) signals.push('retro technical signal aesthetic');
+  if (/launch|status|roadmap|planned content|content lanes/.test(text)) signals.push('launch/status storytelling');
   if (/local|family|trusted|licensed|insured|years/.test(text)) signals.push('local trust and credibility');
   if (/urgent|emergency|fast|same day|response/.test(text)) signals.push('speed and clear immediate action');
-  if (/phone|call|contact|quote|book|schedule|conversion/.test(text)) signals.push('obvious conversion path');
+  if (/phone|call|contact|quote|book|schedule|conversion/.test(text) && !/over quote|not a service-business|project hub/.test(text)) signals.push('obvious conversion path');
   if (/plainspoken|practical|simple|clear/.test(text)) signals.push('plainspoken practical tone');
   return signals.length ? signals : ['clear business value', 'low-friction next step', 'credible modernization without overdesigning'];
 }
@@ -25,10 +29,11 @@ export async function generateDesignBrief(home, workspaceId) {
   await mkdir(path.join(root, 'design', 'briefs'), { recursive: true });
   const profile = await readJson(path.join(root, 'profile.json'), {});
   const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []));
+  const classification = classifyWorkspace(claims);
   const signals = designSignals(claims);
   const claimLines = claims.map((claim) => `- ${claim.text}\n  - Source: ${claim.source}\n  - Confidence: ${Math.round((claim.confidence || 0) * 100)}%`).join('\n') || '- No grounded claims yet.';
 
-  const brief = `# Design Brief\n\nCustomer: ${record.name || profile.name || record.slug}\nWorkspace: ${record.id}\nGenerated: ${now()}\n\n## Design objective\n\nCreate a first-pass modernization direction that preserves what appears to matter to the business while making the next customer action clearer.\n\n## Website / presence\n\n- Website: ${profile.website || '(none provided)'}\n- Homepage captured: ${profile.currentDigitalPresence?.websiteSnapshotCaptured ? 'yes' : 'no'}\n\n## Grounded context\n\n${claimLines}\n\n## Design signals\n\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n## Voice and personality direction\n\nUse grounded claims as taste constraints. Prefer specific, practical, business-relevant language over generic startup polish. If the workspace lacks direct customer preference data, mark design choices as tentative.\n\n## Constraints\n\n- Do not invent credentials, guarantees, reviews, or outcomes.\n- Preserve existing trust signals when they are grounded.\n- Prioritize a small shippable modernization pass over a huge redesign.\n- Customer-facing presentation or deployment requires approval.\n`;
+  const brief = `# Design Brief\n\nCustomer: ${record.name || profile.name || record.slug}\nWorkspace: ${record.id}\nGenerated: ${now()}\n\n## Classification\n\n- Type: ${classification.label}\n- Primary goal: ${classification.primaryGoal}\n\n## Design objective\n\nCreate a first-pass modernization direction that preserves what appears to matter to the site while making the right next action clearer for this specific site type.\n\n## Website / presence\n\n- Website: ${profile.website || '(none provided)'}\n- Homepage captured: ${profile.currentDigitalPresence?.websiteSnapshotCaptured ? 'yes' : 'no'}\n\n## Grounded context\n\n${claimLines}\n\n## Design signals\n\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n## Recommended sections\n\n${classification.sections.map((section) => `- ${section}`).join('\n')}\n\n## Voice and personality direction\n\nUse grounded claims as taste constraints. Prefer specific, practical, site-relevant language over generic startup polish. If the workspace lacks direct preference data, mark design choices as tentative.\n\n## Avoid\n\n${classification.avoid.map((item) => `- ${item}`).join('\n')}\n\n## Constraints\n\n- Do not invent credentials, guarantees, reviews, or outcomes.\n- Preserve grounded identity and trust signals.\n- Prioritize a small shippable modernization pass over a huge redesign.\n- Customer-facing presentation or deployment requires approval.\n`;
 
   const artifact = 'design/briefs/design-brief.md';
   await writeFile(path.join(root, artifact), brief, 'utf8');
@@ -36,24 +41,33 @@ export async function generateDesignBrief(home, workspaceId) {
   return { artifact, brief };
 }
 
+function projectHubMock({ customerName, signals, classification, variant }) {
+  return `# Homepage Mock ${variant}\n\nCustomer: ${customerName}\nGenerated: ${now()}\n\n## Design rationale\n\nThis mock is grounded in the current workspace claims and treats the site as a ${classification.label.toLowerCase()}, not a service-business funnel.\n\nDesign signals:\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n## Hero / Signal deck\n\n**Headline:** ${customerName}: notes, projects, and experiments broadcasting live\n\n**Subheadline:** A retro signal hub for live tools, build notes, prototypes, and upcoming launch channels.\n\n**Primary CTA:** ${classification.cta}\n\n**Secondary CTA:** ${classification.secondaryCta}\n\n## Broadcast status strip\n\n- SYS ONLINE — hub is live\n- LIVE DESTINATION — music.grinningfrog.com\n- INCOMING CHANNELS — blog + lab\n\n## Live projects\n\nLead with the browser-based audio sequencer at music.grinningfrog.com. Explain what it is, why it exists, and what a visitor can do there now.\n\n## Launch channels\n\nShow planned destinations as intentional channels, not empty placeholders:\n\n- blog.grinningfrog.com — dev logs, project breakdowns, long-form notes\n- lab.grinningfrog.com — prototypes, UI tests, one-off experiments\n\n## Build-in-public notes\n\nAdd a short section that makes the maker identity explicit: what gets built here, why it is public, and what kind of updates visitors should expect.\n\n## Review notes\n\n- Preserve the retro transmission language.\n- Optimize for project routing and identity continuity, not quote/contact conversion.\n- Make live vs planned destinations obvious.\n- Capture feedback as claims so future mocks improve.\n`;
+}
+
+function serviceBusinessMock({ customerName, signals, classification, variant }) {
+  const headline = signals.includes('speed and clear immediate action')
+    ? `${customerName}: fast, reliable help when it matters`
+    : `${customerName}: practical service, made easy to start`;
+  return `# Homepage Mock ${variant}\n\nCustomer: ${customerName}\nGenerated: ${now()}\n\n## Design rationale\n\nThis mock is grounded in the current workspace claims and should be reviewed before customer-facing use.\n\nDesign signals:\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n## Hero\n\n**Headline:** ${headline}\n\n**Subheadline:** Clear, plainspoken copy that explains what the business does, where it helps, and why a visitor should trust it.\n\n**Primary CTA:** ${classification.cta}\n\n**Secondary CTA:** ${classification.secondaryCta}\n\n## Trust strip\n\n- Local / credible proof point from grounded research\n- Service or response promise only if verified\n- Review/license/experience signal only if sourced\n\n## Services section\n\nUse 3–5 cards with practical labels. Avoid clever names. Each card should answer: what is it, who needs it, and what should they do next?\n\n## About / credibility section\n\nShort, human, specific. Preserve customer personality from known claims. If personality is unknown, use restrained service-business copy instead of fabricated warmth.\n\n## Conversion section\n\nRepeat the primary CTA with minimal friction. If the business prefers phone calls, foreground phone. If not known, offer both call and quote/request form in the mock.\n\n## Review notes\n\n- Verify every proof point before use.\n- Ask whether the tone feels like the customer.\n- Capture approval/rejection feedback as claims so future mocks improve.\n`;
+}
+
 export async function generateHomepageMock(home, workspaceId, { variant = 'v1' } = {}) {
   const { record, root } = await resolveWorkspace(home, workspaceId);
   await mkdir(path.join(root, 'design', 'mocks'), { recursive: true });
   const profile = await readJson(path.join(root, 'profile.json'), {});
-  const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []), 8);
+  const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []), 12);
+  const classification = classifyWorkspace(claims);
   const signals = designSignals(claims);
   const customerName = record.name || profile.name || record.slug;
 
-  const headline = signals.includes('speed and clear immediate action')
-    ? `${customerName}: fast, reliable help when it matters`
-    : `${customerName}: practical service, made easy to start`;
-  const cta = signals.includes('obvious conversion path') ? 'Call or request a quote' : 'Request a quick consultation';
-
-  const mock = `# Homepage Mock ${variant}\n\nCustomer: ${customerName}\nGenerated: ${now()}\n\n## Design rationale\n\nThis mock is grounded in the current workspace claims and should be reviewed before customer-facing use.\n\nDesign signals:\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n## Hero\n\n**Headline:** ${headline}\n\n**Subheadline:** Clear, plainspoken copy that explains what the business does, where it helps, and why a visitor should trust it.\n\n**Primary CTA:** ${cta}\n\n**Secondary CTA:** See services\n\n## Trust strip\n\n- Local / credible proof point from grounded research\n- Service or response promise only if verified\n- Review/license/experience signal only if sourced\n\n## Services section\n\nUse 3–5 cards with practical labels. Avoid clever names. Each card should answer: what is it, who needs it, and what should they do next?\n\n## About / credibility section\n\nShort, human, specific. Preserve customer personality from known claims. If personality is unknown, use restrained service-business copy instead of fabricated warmth.\n\n## Conversion section\n\nRepeat the primary CTA with minimal friction. If the business prefers phone calls, foreground phone. If not known, offer both call and quote/request form in the mock.\n\n## Review notes\n\n- Verify every proof point before use.\n- Ask whether the tone feels like the customer.\n- Capture approval/rejection feedback as claims so future mocks improve.\n`;
+  const mock = classification.kind === 'personal-project-hub'
+    ? projectHubMock({ customerName, signals, classification, variant })
+    : serviceBusinessMock({ customerName, signals, classification, variant });
 
   const artifact = `design/mocks/homepage-${variant}.md`;
   await writeFile(path.join(root, artifact), mock, 'utf8');
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.generated', at: now(), artifact, variant });
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.generated', at: now(), artifact, variant, classification: classification.kind });
   const approval = {
     id: id('appr'),
     version: VERSION,
@@ -96,15 +110,16 @@ export async function reviseHomepageMock(home, workspaceId, { from = 'design/moc
   await mkdir(path.join(root, 'design', 'revisions'), { recursive: true });
   const profile = await readJson(path.join(root, 'profile.json'), {});
   const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []), 12);
+  const classification = classifyWorkspace(claims);
   const signals = designSignals(claims);
   const feedbackClaims = claims.filter((claim) => /design preference feedback/i.test(claim.text));
   const previous = await readFile(path.join(root, from), 'utf8').catch(() => '');
   const customerName = record.name || profile.name || record.slug;
 
-  const revision = `# Homepage Mock ${variant}\n\nCustomer: ${customerName}\nGenerated: ${now()}\nRevised from: ${from}\n\n## Revision basis\n\nThis revision incorporates recorded design feedback and active workspace claims.\n\n### Active design signals\n\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n### Feedback memory\n\n${feedbackClaims.map((claim) => `- ${claim.text.replace(/^Design preference feedback: /, '')}\n  - Source: ${claim.source}`).join('\n') || '- No explicit design feedback recorded.'}\n\n## Revised hero\n\n**Headline:** ${customerName}: clear, credible help without the runaround\n\n**Subheadline:** Practical copy tuned to the customer’s known preferences. Avoid unsupported hype; make the visitor’s next step obvious.\n\n**Primary CTA:** ${signals.includes('obvious conversion path') ? 'Call or request a quote' : 'Start with a quick question'}\n\n## Revised layout notes\n\n- Lead with the strongest grounded value signal.\n- Reflect recorded customer taste before aesthetic novelty.\n- Keep proof points sourced.\n- Preserve a small, shippable scope.\n\n## Previous mock excerpt\n\n${previous.slice(0, 1800) || '(previous mock not found)'}\n`;
+  const revision = `# Homepage Mock ${variant}\n\nCustomer: ${customerName}\nGenerated: ${now()}\nRevised from: ${from}\nClassification: ${classification.label}\n\n## Revision basis\n\nThis revision incorporates recorded design feedback and active workspace claims.\n\n### Active design signals\n\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n### Feedback memory\n\n${feedbackClaims.map((claim) => `- ${claim.text.replace(/^Design preference feedback: /, '')}\n  - Source: ${claim.source}`).join('\n') || '- No explicit design feedback recorded.'}\n\n## Revised hero\n\n**Headline:** ${classification.kind === 'personal-project-hub' ? `${customerName}: tune into the projects, notes, and experiments` : `${customerName}: clear, credible help without the runaround`}\n\n**Subheadline:** ${classification.kind === 'personal-project-hub' ? 'A sharper signal hub that routes visitors to live apps, upcoming channels, and build-in-public updates.' : 'Practical copy tuned to the customer’s known preferences. Avoid unsupported hype; make the visitor’s next step obvious.'}\n\n**Primary CTA:** ${classification.cta}\n\n## Revised layout notes\n\n- Lead with the strongest grounded value signal.\n- Reflect recorded customer taste before aesthetic novelty.\n- Keep proof points sourced.\n- Preserve a small, shippable scope.\n\n## Previous mock excerpt\n\n${previous.slice(0, 1800) || '(previous mock not found)'}\n`;
 
   const artifact = `design/revisions/homepage-${variant}.md`;
   await writeFile(path.join(root, artifact), revision, 'utf8');
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.revised', at: now(), artifact, sourceArtifact: from, variant });
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.revised', at: now(), artifact, sourceArtifact: from, variant, classification: classification.kind });
   return { artifact, revision };
 }

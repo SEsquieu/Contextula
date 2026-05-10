@@ -52,7 +52,7 @@ try {
   const generatedTickets = await run(['tickets', 'generate', workspaceId, '--home', home]);
   if (!generatedTickets.includes('generated')) throw new Error(`Ticket generation failed: ${generatedTickets}`);
   const tickets = await run(['tickets', 'list', workspaceId, '--home', home]);
-  if (!tickets.includes('Confirm customer identity')) throw new Error(`Ticket listing failed: ${tickets}`);
+  if (!tickets.includes('Confirm site identity')) throw new Error(`Ticket listing failed: ${tickets}`);
   const designBrief = await run(['design', 'brief', workspaceId, '--home', home]);
   if (!designBrief.includes('design brief:')) throw new Error(`Design brief failed: ${designBrief}`);
   const designMock = await run(['design', 'mock', workspaceId, '--home', home]);

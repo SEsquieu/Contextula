@@ -99,5 +99,25 @@ contextula agent research <workspace-id> --provider json --response docs/fixture
 
 - `static` — deterministic local provider for tests and smoke flows.
 - `json` — reads a provider response JSON file from `--response <path>`. Useful for OpenClaw/manual handoff until a direct adapter exists.
+- `openclaw` — runs `CONTEXTULA_OPENCLAW_RESEARCH_COMMAND` as a command that reads the generated research prompt from stdin and writes provider JSON to stdout.
+
+Inspect provider configuration with:
+
+```bash
+contextula agent providers
+```
+
+Provider runs are archived under each workspace:
+
+```text
+research/provider-runs/run_.../
+  packet.json
+  prompt.md
+  response.raw.json
+  response.normalized.json
+  errors.json        # only when a run fails before durable writes
+```
+
+This makes semantic extraction debuggable without giving providers arbitrary filesystem access.
 
 Future providers can wrap OpenClaw, local inference, hosted models, or a task-specific agent runtime as long as they honor this contract.

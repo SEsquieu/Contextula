@@ -27,6 +27,8 @@ async function expectFail(args, expected) {
 
 try {
   await run(['--help']);
+  const providers = await run(['agent', 'providers']);
+  if (!providers.includes('static') || !providers.includes('openclaw')) throw new Error(`Provider diagnostics failed: ${providers}`);
   await run(['init', '--home', home]);
   const demo = await run(['demo', 'site', '--home', home, '--name', 'Demo Plumbing', '--website', 'example.org', '--max-pages', '1']);
   if (!demo.includes('No external messages sent')) throw new Error(`Demo flow failed: ${demo}`);
@@ -52,6 +54,7 @@ try {
   if (!prompt.includes('prompt:')) throw new Error(`Prompt export failed: ${prompt}`);
   const agentResearch = await run(['agent', 'research', workspaceId, '--home', home]);
   if (!agentResearch.includes('agent research complete')) throw new Error(`Agent research failed: ${agentResearch}`);
+  if (!agentResearch.includes('provider run: research/provider-runs/run_')) throw new Error(`Provider run artifact missing: ${agentResearch}`);
   const badProviderResponse = path.join(home, 'bad-provider-response.json');
   await writeFile(badProviderResponse, JSON.stringify({ observations: [{ confidence: 0.5 }] }), 'utf8');
   await expectFail(['agent', 'research', workspaceId, '--home', home, '--provider', 'json', '--response', badProviderResponse], 'observations[0].text');

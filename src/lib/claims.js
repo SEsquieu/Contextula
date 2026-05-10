@@ -24,7 +24,7 @@ export async function findDuplicateClaim(root, { text, source = 'manual', status
   return claims.find((claim) => claimKey(claim) === key) || null;
 }
 
-export async function addClaim(root, { text, confidence = 0.5, source = 'manual', status = 'active', dedupe = true } = {}) {
+export async function addClaim(root, { text, confidence = 0.5, source = 'manual', status = 'active', dedupe = true, metadata = {} } = {}) {
   if (!text) throw new Error('Missing claim text');
   if (dedupe) {
     const duplicate = await findDuplicateClaim(root, { text, source, status });
@@ -40,7 +40,8 @@ export async function addClaim(root, { text, confidence = 0.5, source = 'manual'
     text,
     source,
     confidence: Number(confidence),
-    status
+    status,
+    ...metadata
   };
   await appendJsonl(path.join(root, 'memory', 'claims.jsonl'), claim);
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'claim.added', at: now(), claimId: claim.id, source: claim.source });

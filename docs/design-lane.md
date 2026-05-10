@@ -65,7 +65,7 @@ Design is subjective. Generated mocks should be treated as review artifacts, not
 
 Any external presentation, publication, or deployment requires approval.
 
-Rejected designs should create memory, for example:
+Critiques and rejected designs should create memory, for example:
 
 ```json
 {
@@ -77,3 +77,14 @@ Rejected designs should create memory, for example:
 ```
 
 This is how Contextula learns taste over time.
+
+## Current CLI
+
+```bash
+contextula design brief <workspace>
+contextula design mock <workspace>
+contextula design critique <workspace> --feedback "Prefer brighter, more practical styling."
+contextula design revise <workspace>
+```
+
+The first implementation uses markdown mocks and revisions. Future providers can replace the mock renderer with HTML, image generation, or Figma-like output while keeping the same memory/approval loop.

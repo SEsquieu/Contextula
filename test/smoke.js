@@ -49,6 +49,10 @@ try {
   if (!designBrief.includes('design brief:')) throw new Error(`Design brief failed: ${designBrief}`);
   const designMock = await run(['design', 'mock', workspaceId, '--home', home]);
   if (!designMock.includes('design mock:')) throw new Error(`Design mock failed: ${designMock}`);
+  const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);
+  if (!designCritique.includes('design critique:')) throw new Error(`Design critique failed: ${designCritique}`);
+  const designRevision = await run(['design', 'revise', workspaceId, '--home', home]);
+  if (!designRevision.includes('design revision:')) throw new Error(`Design revision failed: ${designRevision}`);
   const dashboard = await run(['dashboard', workspaceId, '--home', home]);
   if (!dashboard.includes('dashboard:')) throw new Error(`Dashboard generation failed: ${dashboard}`);
   const portfolio = await run(['portfolio', '--home', home]);

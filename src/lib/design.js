@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, readJsonl } from './util.js';
 import { resolveWorkspace } from './storage.js';
 
@@ -55,4 +55,44 @@ export async function generateHomepageMock(home, workspaceId, { variant = 'v1' }
   await writeFile(path.join(root, artifact), mock, 'utf8');
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.generated', at: now(), artifact, variant });
   return { artifact, mock };
+}
+
+export async function critiqueDesign(home, workspaceId, { artifact = 'design/mocks/homepage-v1.md', feedback } = {}) {
+  if (!feedback) throw new Error('Missing --feedback');
+  const { root } = await resolveWorkspace(home, workspaceId);
+  await mkdir(path.join(root, 'design', 'critiques'), { recursive: true });
+  const mock = await readFile(path.join(root, artifact), 'utf8').catch(() => '');
+  const critiqueArtifact = `design/critiques/${path.basename(artifact, '.md')}-critique.md`;
+  const critique = `# Design Critique\n\nArtifact: ${artifact}\nGenerated: ${now()}\n\n## Feedback\n\n${feedback}\n\n## Mock excerpt\n\n${mock.slice(0, 2500) || '(mock artifact not found)'}\n\n## Memory update\n\nThe feedback above should influence future revisions and mocks for this workspace.\n`;
+
+  await writeFile(path.join(root, critiqueArtifact), critique, 'utf8');
+  const claim = {
+    id: id('claim'),
+    at: now(),
+    text: `Design preference feedback: ${feedback}`,
+    source: critiqueArtifact,
+    confidence: 0.95,
+    status: 'active'
+  };
+  await appendJsonl(path.join(root, 'memory', 'claims.jsonl'), claim);
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.critique.recorded', at: now(), artifact: critiqueArtifact, sourceArtifact: artifact, claimId: claim.id });
+  return { artifact: critiqueArtifact, claim, critique };
+}
+
+export async function reviseHomepageMock(home, workspaceId, { from = 'design/mocks/homepage-v1.md', variant = 'v2' } = {}) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  await mkdir(path.join(root, 'design', 'revisions'), { recursive: true });
+  const profile = await readJson(path.join(root, 'profile.json'), {});
+  const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []), 12);
+  const signals = designSignals(claims);
+  const feedbackClaims = claims.filter((claim) => /design preference feedback/i.test(claim.text));
+  const previous = await readFile(path.join(root, from), 'utf8').catch(() => '');
+  const customerName = record.name || profile.name || record.slug;
+
+  const revision = `# Homepage Mock ${variant}\n\nCustomer: ${customerName}\nGenerated: ${now()}\nRevised from: ${from}\n\n## Revision basis\n\nThis revision incorporates recorded design feedback and active workspace claims.\n\n### Active design signals\n\n${signals.map((signal) => `- ${signal}`).join('\n')}\n\n### Feedback memory\n\n${feedbackClaims.map((claim) => `- ${claim.text.replace(/^Design preference feedback: /, '')}\n  - Source: ${claim.source}`).join('\n') || '- No explicit design feedback recorded.'}\n\n## Revised hero\n\n**Headline:** ${customerName}: clear, credible help without the runaround\n\n**Subheadline:** Practical copy tuned to the customer’s known preferences. Avoid unsupported hype; make the visitor’s next step obvious.\n\n**Primary CTA:** ${signals.includes('obvious conversion path') ? 'Call or request a quote' : 'Start with a quick question'}\n\n## Revised layout notes\n\n- Lead with the strongest grounded value signal.\n- Reflect recorded customer taste before aesthetic novelty.\n- Keep proof points sourced.\n- Preserve a small, shippable scope.\n\n## Previous mock excerpt\n\n${previous.slice(0, 1800) || '(previous mock not found)'}\n`;
+
+  const artifact = `design/revisions/homepage-${variant}.md`;
+  await writeFile(path.join(root, artifact), revision, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'design.mock.revised', at: now(), artifact, sourceArtifact: from, variant });
+  return { artifact, revision };
 }

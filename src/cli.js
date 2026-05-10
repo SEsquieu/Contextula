@@ -6,6 +6,7 @@ import { researchHomepage, researchWebsite } from './lib/research.js';
 import { buildPlan, createApproval } from './lib/planning.js';
 import { listApprovals, setApprovalStatus } from './lib/approvals.js';
 import { addClaim, listClaims } from './lib/claims.js';
+import { draftOutreach } from './lib/drafts.js';
 import { generateBrief, generateReport } from './lib/reports.js';
 import { validateHome, validateWorkspace } from './lib/validation.js';
 
@@ -83,6 +84,12 @@ async function createClaim(home, workspaceId, flags) {
   console.log(`claim added: ${claim.id}`);
 }
 
+async function createOutreachDraft(home, workspaceId, flags) {
+  const result = await draftOutreach(home, workspaceId, { channel: flags.channel || 'email', tone: flags.tone || 'concise' });
+  console.log(`draft: ${result.artifact}`);
+  console.log(`approval: ${result.approval.id}`);
+}
+
 async function printValidation(home, workspaceId) {
   const results = workspaceId ? [await validateWorkspace(home, workspaceId)] : await validateHome(home);
   if (results.length === 0) {
@@ -103,7 +110,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n`);
 }
 
 async function main() {
@@ -137,6 +144,7 @@ async function main() {
   if (cmd === 'brief') return console.log(await generateBrief(home, subcmd));
   if (cmd === 'claims') return printClaims(home, subcmd, flags);
   if (cmd === 'claim' && subcmd === 'add') return createClaim(home, maybeId, flags);
+  if (cmd === 'draft' && subcmd === 'outreach') return createOutreachDraft(home, maybeId, flags);
   if (cmd === 'validate') return printValidation(home, subcmd);
 
   help();

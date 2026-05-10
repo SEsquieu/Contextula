@@ -35,6 +35,8 @@ try {
   await run(['report', workspaceId, '--home', home]);
   const brief = await run(['brief', workspaceId, '--home', home]);
   if (!brief.includes('Modernization Brief')) throw new Error(`Brief generation failed: ${brief}`);
+  const draft = await run(['draft', 'outreach', workspaceId, '--home', home]);
+  if (!draft.includes('approval:')) throw new Error(`Draft approval was not created: ${draft}`);
   const validation = await run(['validate', workspaceId, '--home', home]);
   if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);

@@ -491,7 +491,31 @@ async function latestBuild(root) {
   return builds[0] || null;
 }
 
-function critiquePlanAndBuild({ plan, build, linkCheck, routeFiles }) {
+async function routeFileFacts(buildRoot, route) {
+  const file = routeToFile(route.path);
+  const fullPath = path.join(buildRoot, file);
+  const fileExists = await exists(fullPath);
+  const html = fileExists ? await readFile(fullPath, 'utf8').catch(() => '') : '';
+  const cssLinks = [...html.matchAll(/<link[^>]+rel=["']stylesheet["'][^>]+href=["']([^"']+)["']/gi)].map((match) => match[1]);
+  let linkedCss = '';
+  for (const href of cssLinks) {
+    const cssPath = href.startsWith('/') ? path.join(buildRoot, href.replace(/^\//, '')) : path.join(path.dirname(fullPath), href);
+    linkedCss += await readFile(cssPath, 'utf8').catch(() => '');
+  }
+  const combined = `${html}\n${linkedCss}`;
+  return {
+    path: route.path,
+    file,
+    exists: fileExists,
+    bytes: html.length,
+    hasViewportMeta: /<meta[^>]+name=["']viewport["']/i.test(html),
+    hasResponsiveCss: /@media\s*\(|clamp\(|minmax\(|auto-fit|auto-fill|flex-wrap/i.test(combined),
+    navLinkCount: (html.match(/<a\b/gi) || []).length,
+    hasHorizontalOverflowRisk: /width\s*:\s*(?:\d{3,}|100vw)|min-width\s*:\s*(?:\d{3,})/i.test(combined)
+  };
+}
+
+function critiquePlanAndBuild({ plan, build, linkCheck, routeFiles, viewport = 'desktop' }) {
   const findings = [];
   const strengths = [];
 
@@ -522,6 +546,20 @@ function critiquePlanAndBuild({ plan, build, linkCheck, routeFiles }) {
     else findings.push({ severity: 'medium', area: 'classification', message: 'Service-business plan lacks services or contact routes.', recommendation: 'Add grounded conversion routes before build review.' });
   }
 
+  if (viewport === 'mobile') {
+    const missingViewport = routeFiles.filter((route) => route.exists && !route.hasViewportMeta);
+    if (missingViewport.length) findings.push({ severity: 'high', area: 'mobile', message: `${missingViewport.length} route(s) are missing a viewport meta tag.`, recommendation: 'Add <meta name="viewport" content="width=device-width, initial-scale=1"> to every generated page.' });
+    else strengths.push('Mobile guardrail passed: every generated page has a viewport meta tag.');
+
+    const responsiveRoutes = routeFiles.filter((route) => route.hasResponsiveCss).length;
+    if (responsiveRoutes) strengths.push(`Mobile responsiveness signal found on ${responsiveRoutes} route artifact(s).`);
+    else findings.push({ severity: 'medium', area: 'mobile', message: 'No obvious responsive CSS signal was found in the generated build.', recommendation: 'Add media queries, flexible grids, wrapping nav, or clamp/minmax sizing before mobile review.' });
+
+    const overflowRisks = routeFiles.filter((route) => route.hasHorizontalOverflowRisk);
+    if (overflowRisks.length) findings.push({ severity: 'medium', area: 'mobile', message: `${overflowRisks.length} route(s) contain fixed-width CSS patterns that may cause horizontal overflow.`, recommendation: 'Review fixed widths/min-widths on mobile and prefer max-width, flexible grids, and wrapping layouts.' });
+    else strengths.push('No obvious fixed-width mobile overflow risks detected in generated route artifacts.');
+  }
+
   const high = findings.filter((finding) => finding.severity === 'high').length;
   const medium = findings.filter((finding) => finding.severity === 'medium').length;
   const score = Math.max(0, 100 - high * 30 - medium * 12 - findings.filter((finding) => finding.severity === 'low').length * 5);
@@ -533,18 +571,18 @@ async function recordCritiqueLearning(root, critique) {
   const claims = [];
   if (critique.findings.length === 0) {
     claims.push(await addClaim(root, {
-      text: `Latest site build critique passed with verdict ${critique.verdict} and no findings for ${critique.classification?.label || 'current classification'}.`,
+      text: `Latest ${critique.viewport || 'desktop'} site build critique passed with verdict ${critique.verdict} and no findings for ${critique.classification?.label || 'current classification'}.`,
       confidence: 0.82,
       source: 'site-critique',
-      metadata: { artifact: `${critique.build}/contextula/site-critique.md`, build: critique.build, verdict: critique.verdict, score: critique.score }
+      metadata: { artifact: critique.report || `${critique.build}/contextula/site-critique.md`, build: critique.build, viewport: critique.viewport, verdict: critique.verdict, score: critique.score }
     }));
   } else {
     for (const finding of critique.findings) {
       claims.push(await addClaim(root, {
-        text: `Site build critique found ${finding.severity} ${finding.area} issue: ${finding.message} Recommendation: ${finding.recommendation}`,
+        text: `${critique.viewport || 'desktop'} site build critique found ${finding.severity} ${finding.area} issue: ${finding.message} Recommendation: ${finding.recommendation}`,
         confidence: finding.severity === 'high' ? 0.9 : finding.severity === 'medium' ? 0.78 : 0.66,
         source: 'site-critique',
-        metadata: { artifact: `${critique.build}/contextula/site-critique.md`, build: critique.build, verdict: critique.verdict, score: critique.score, severity: finding.severity, area: finding.area }
+        metadata: { artifact: critique.report || `${critique.build}/contextula/site-critique.md`, build: critique.build, viewport: critique.viewport, verdict: critique.verdict, score: critique.score, severity: finding.severity, area: finding.area }
       }));
     }
   }
@@ -552,8 +590,9 @@ async function recordCritiqueLearning(root, critique) {
   const learned = {
     version: 1,
     updatedAt: now(),
-    source: `${critique.build}/contextula/site-critique.json`,
+    source: critique.artifact || `${critique.build}/contextula/site-critique.json`,
     build: critique.build,
+    viewport: critique.viewport,
     verdict: critique.verdict,
     score: critique.score,
     claimIds: claims.map((claim) => claim.id),
@@ -563,11 +602,11 @@ async function recordCritiqueLearning(root, critique) {
       : [{ type: 'positive', area: 'site-build-quality', message: 'Build passed procedural critique without findings.' }]
   };
   await writeJson(path.join(root, 'site', 'critique-learning.json'), learned);
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.critique.learned', at: now(), build: critique.build, verdict: critique.verdict, score: critique.score, claims: claims.length, duplicateClaims: learned.duplicateClaims });
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.critique.learned', at: now(), build: critique.build, viewport: critique.viewport, verdict: critique.verdict, score: critique.score, claims: claims.length, duplicateClaims: learned.duplicateClaims });
   return learned;
 }
 
-export async function critiqueStaticSite(home, workspaceId, { build: requestedBuild = 'latest' } = {}) {
+export async function critiqueStaticSite(home, workspaceId, { build: requestedBuild = 'latest', viewport = 'desktop' } = {}) {
   const { record, root } = await resolveWorkspace(home, workspaceId);
   const plan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
   if (!plan) throw new Error('Missing site/sitemap.json. Run: contextula site plan <workspace>');
@@ -579,11 +618,9 @@ export async function critiqueStaticSite(home, workspaceId, { build: requestedBu
 
   const buildRoot = path.join(root, build.root || `builds/${build.directory || build.id}`);
   const linkCheck = await readJson(path.join(buildRoot, 'contextula', 'link-check.json'), { ok: false, checked: [], missing: [] });
+  viewport = ['mobile', 'desktop'].includes(viewport) ? viewport : 'desktop';
   const routeFiles = [];
-  for (const route of plan.routes) {
-    const file = routeToFile(route.path);
-    routeFiles.push({ path: route.path, file, exists: await exists(path.join(buildRoot, file)) });
-  }
+  for (const route of plan.routes) routeFiles.push(await routeFileFacts(buildRoot, route));
 
   const critique = {
     id: id('sitecrit'),
@@ -592,19 +629,23 @@ export async function critiqueStaticSite(home, workspaceId, { build: requestedBu
     workspaceId: record.id,
     workspaceName: record.name || record.slug,
     build: build.root || `builds/${build.directory || build.id}`,
+    viewport,
     plan: 'site/sitemap.json',
     classification: plan.classification,
     routeFiles,
     linkCheck: { ok: Boolean(linkCheck.ok), checked: linkCheck.checked?.length || 0, missing: linkCheck.missing || [] },
-    ...critiquePlanAndBuild({ plan, build, linkCheck, routeFiles })
+    ...critiquePlanAndBuild({ plan, build, linkCheck, routeFiles, viewport })
   };
 
-  const relativeArtifact = `${critique.build}/contextula/site-critique.json`;
-  const relativeReport = `${critique.build}/contextula/site-critique.md`;
+  const suffix = viewport === 'mobile' ? '-mobile' : '';
+  const relativeArtifact = `${critique.build}/contextula/site-critique${suffix}.json`;
+  const relativeReport = `${critique.build}/contextula/site-critique${suffix}.md`;
+  critique.artifact = relativeArtifact;
+  critique.report = relativeReport;
   await writeJson(path.join(root, relativeArtifact), critique);
-  const md = `# Site Critique\n\nWorkspace: ${critique.workspaceName}\nBuild: ${critique.build}\nCreated: ${critique.createdAt}\nVerdict: ${critique.verdict}\nScore: ${critique.score}\n\n## Strengths\n\n${critique.strengths.map((item) => `- ${item}`).join('\n') || '- None recorded.'}\n\n## Findings\n\n${critique.findings.map((finding) => `- [${finding.severity}] ${finding.area}: ${finding.message}\n  - Recommendation: ${finding.recommendation}`).join('\n') || '- No blocking findings.'}\n\n## Route files\n\n${critique.routeFiles.map((route) => `- ${route.path} -> ${route.file}: ${route.exists ? 'ok' : 'missing'}`).join('\n')}\n`;
+  const md = `# Site Critique\n\nWorkspace: ${critique.workspaceName}\nBuild: ${critique.build}\nViewport: ${critique.viewport}\nCreated: ${critique.createdAt}\nVerdict: ${critique.verdict}\nScore: ${critique.score}\n\n## Strengths\n\n${critique.strengths.map((item) => `- ${item}`).join('\n') || '- None recorded.'}\n\n## Findings\n\n${critique.findings.map((finding) => `- [${finding.severity}] ${finding.area}: ${finding.message}\n  - Recommendation: ${finding.recommendation}`).join('\n') || '- No blocking findings.'}\n\n## Route files\n\n${critique.routeFiles.map((route) => `- ${route.path} -> ${route.file}: ${route.exists ? 'ok' : 'missing'}${critique.viewport === 'mobile' ? `; viewport meta: ${route.hasViewportMeta ? 'ok' : 'missing'}; responsive signal: ${route.hasResponsiveCss ? 'yes' : 'no'}` : ''}`).join('\n')}\n`;
   await writeFile(path.join(root, relativeReport), md, 'utf8');
-  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.critique.generated', at: now(), artifact: relativeReport, build: critique.build, verdict: critique.verdict, score: critique.score, findings: critique.findings.length });
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.critique.generated', at: now(), artifact: relativeReport, build: critique.build, viewport, verdict: critique.verdict, score: critique.score, findings: critique.findings.length });
   const learned = await recordCritiqueLearning(root, critique);
   return { critique, learned, artifact: relativeArtifact, report: relativeReport, learning: 'site/critique-learning.json' };
 }

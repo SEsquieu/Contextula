@@ -108,6 +108,8 @@ try {
   const siteCritique = await run(['site', 'critique', workspaceId, '--home', home]);
   if (!siteCritique.includes('site critique:') || !siteCritique.includes('verdict:')) throw new Error(`Site critique failed: ${siteCritique}`);
   if (!siteCritique.includes('learning: site/critique-learning.json')) throw new Error(`Site critique learning missing: ${siteCritique}`);
+  const mobileSiteCritique = await run(['site', 'critique', workspaceId, '--home', home, '--viewport', 'mobile']);
+  if (!mobileSiteCritique.includes('viewport: mobile') || !mobileSiteCritique.includes('site-critique-mobile.md')) throw new Error(`Mobile site critique failed: ${mobileSiteCritique}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

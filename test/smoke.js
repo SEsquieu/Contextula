@@ -110,6 +110,14 @@ try {
   if (!siteCritique.includes('learning: site/critique-learning.json')) throw new Error(`Site critique learning missing: ${siteCritique}`);
   const mobileSiteCritique = await run(['site', 'critique', workspaceId, '--home', home, '--viewport', 'mobile']);
   if (!mobileSiteCritique.includes('viewport: mobile') || !mobileSiteCritique.includes('site-critique-mobile.md')) throw new Error(`Mobile site critique failed: ${mobileSiteCritique}`);
+  const previewRepo = await mkdtemp(path.join(tmpdir(), 'contextula-preview-repo-'));
+  await execFileAsync('git', ['init'], { cwd: previewRepo });
+  await execFileAsync('git', ['switch', '-c', 'preview'], { cwd: previewRepo });
+  await writeFile(path.join(previewRepo, 'README.md'), '# Preview Repo\n', 'utf8');
+  await execFileAsync('git', ['add', 'README.md'], { cwd: previewRepo });
+  await execFileAsync('git', ['-c', 'user.name=Contextula Test', '-c', 'user.email=contextula@example.invalid', 'commit', '-m', 'Initial preview repo'], { cwd: previewRepo });
+  const sitePreview = await run(['site', 'preview', workspaceId, '--home', home, '--repo', previewRepo, '--branch', 'preview', '--viewport', 'desktop', '--no-push']);
+  if (!sitePreview.includes('site preview:') || !sitePreview.includes('pushed: no') || !sitePreview.includes('approval:')) throw new Error(`Site preview failed: ${sitePreview}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

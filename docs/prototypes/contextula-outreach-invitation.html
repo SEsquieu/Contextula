@@ -87,30 +87,12 @@
       place-items:center;
       position:relative;
       border-radius:50%;
-      background:
-        radial-gradient(circle at 35% 30%, #ff4c5b, var(--blood) 44%, var(--blood-dark) 100%);
+      overflow:hidden;
+      background:#070707;
       box-shadow:0 0 34px rgba(226,29,45,.34), inset 0 2px 0 rgba(255,255,255,.18);
-      color:#070707;
-      font-family:var(--serif);
-      font-size:46px;
-      font-weight:900;
-      line-height:1;
     }
-    .seal::before,
-    .seal::after {
-      content:"";
-      position:absolute;
-      top:13px;
-      width:0;
-      height:0;
-      border-left:6px solid transparent;
-      border-right:6px solid transparent;
-      border-top:19px solid #070707;
-    }
-    .seal::before { left:21px; transform:rotate(7deg); }
-    .seal::after { right:12px; transform:rotate(-9deg); }
-    .seal-small { width:24px; height:24px; font-size:21px; border-radius:7px; box-shadow:none; }
-    .seal-small::before,.seal-small::after{ display:none; }
+    .seal img { width:128%; height:128%; object-fit:cover; display:block; }
+    .seal-small { width:24px; height:24px; border-radius:7px; box-shadow:none; }
 
     .wordmark {
       font-family:var(--serif);
@@ -126,8 +108,8 @@
       overflow:hidden;
       border:1px solid var(--line);
       background:
-        linear-gradient(110deg, rgba(8,8,8,.98), rgba(14,14,14,.92) 52%, rgba(50,6,10,.68)),
-        radial-gradient(circle at 75% 34%, rgba(226,29,45,.28), transparent 35%);
+        linear-gradient(110deg, rgba(8,8,8,.96), rgba(14,14,14,.84) 46%, rgba(50,6,10,.46)),
+        url('assets/contextula-gothic-hero-background.png') right center / cover no-repeat;
       box-shadow:var(--shadow), inset 0 1px 0 rgba(245,241,234,.06);
     }
 
@@ -319,26 +301,10 @@
       min-height:430px;
       overflow:hidden;
       border:1px solid rgba(245,241,234,.18);
-      background:
-        linear-gradient(180deg, rgba(245,241,234,.07), rgba(245,241,234,.02)),
-        linear-gradient(135deg,#0a0a0a,#171717);
-      padding:14px;
+      background:linear-gradient(135deg,#0a0a0a,#171717);
+      padding:0;
     }
-    .browser-bar { height:34px; display:flex; align-items:center; gap:7px; border-bottom:1px solid var(--line); color:#6d6662; font-size:11px; text-transform:uppercase; letter-spacing:.12em; }
-    .lamp { width:8px; height:8px; border-radius:50%; background:var(--blood); box-shadow:0 0 14px rgba(226,29,45,.6); }
-    .mini-site {
-      margin-top:18px;
-      min-height:340px;
-      background:linear-gradient(180deg,#eefcff,#fff);
-      color:#10212b;
-      border-radius:18px;
-      padding:26px;
-      font-family:var(--sans);
-    }
-    .mini-site small { color:#06b6d4; font-weight:900; text-transform:uppercase; letter-spacing:.16em; }
-    .mini-site h3 { font-size:42px; letter-spacing:-.06em; line-height:.9; margin:14px 0; }
-    .mini-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:24px; }
-    .mini-card { min-height:76px; border:1px solid #d6e8ee; border-radius:14px; background:white; padding:12px; color:#5b6f7a; font-size:12px; }
+    .preview-frame img { width:100%; height:100%; min-height:430px; object-fit:cover; display:block; filter:contrast(1.05) saturate(1.02); }
 
     .closing {
       position:relative;
@@ -383,7 +349,7 @@
 <body>
   <div class="page">
     <div class="crest-bar">
-      <div class="seal-lockup"><div class="seal seal-small">C</div><span>contextula</span></div>
+      <div class="seal-lockup"><div class="seal seal-small"><img src="assets/contextula-fanged-c-mark.png" alt="Contextula C mark"></div><span>contextula</span></div>
       <div>Private operator brief · prepared for Mock Pressure Washing</div>
     </div>
 
@@ -391,7 +357,7 @@
       <div class="hero-grid">
         <div>
           <div class="seal-lockup" style="margin-bottom:34px">
-            <div class="seal">C</div>
+            <div class="seal"><img src="assets/contextula-fanged-c-mark.png" alt="Contextula fanged C mark"></div>
             <div>
               <div class="wordmark" style="font-size:clamp(48px,7vw,92px)">contextula</div>
               <div style="color:var(--blood);text-transform:uppercase;letter-spacing:.42em;font-size:12px;font-weight:900;margin-top:8px">Persistent context. Continuous growth.</div>
@@ -449,14 +415,8 @@
           <p>This is the moment that should land with a busy owner: Contextula already did the first hour of thinking, produced a clean preview, and showed the exact questions needed before anything becomes real.</p>
           <p><a class="button primary" href="#">Open generated preview</a></p>
         </article>
-        <div class="preview-frame" aria-label="Preview mock">
-          <div class="browser-bar"><span class="lamp"></span><span class="lamp"></span><span class="lamp"></span><span>private-preview.contextula</span></div>
-          <div class="mini-site">
-            <small>Local exterior cleaning</small>
-            <h3>Make the outside feel new again.</h3>
-            <p>Friendly, reliable pressure washing for homes, driveways, decks, storefronts, and seasonal cleanups.</p>
-            <div class="mini-grid"><div class="mini-card">House washing</div><div class="mini-card">Concrete refresh</div><div class="mini-card">Seasonal cleanup</div></div>
-          </div>
+        <div class="preview-frame" aria-label="Contextula operator dashboard mockup">
+          <img src="assets/contextula-operator-console-clean.png" alt="Contextula operator dashboard and mobile companion mockup">
         </div>
       </div>
     </section>

@@ -40,7 +40,7 @@ export async function runJourneyDemo(home, { name, website, feedback, contentTop
     : await runSiteProvider(home, workspaceId, { provider: siteProvider, response: siteResponse || (siteProvider === 'json' ? defaultJourneySiteResponse : undefined), command: siteCommand });
   await critiqueStaticSite(home, workspaceId, { build: build.build.root, viewport: 'desktop' });
   await generateDashboard(home, workspaceId);
-  const review = await generateCustomerReviewPackage(home, workspaceId, { previewUrl: previewUrl || null, note: 'Demo package: this is a mock customer journey showing Contextula\'s onboarding/review loop.' });
+  const review = await generateCustomerReviewPackage(home, workspaceId, { previewUrl: previewUrl || null, mode: 'prospect', note: 'Private demo package: this shows the first public-presence preview plus the exact approvals and owner questions needed for the next version.' });
   await setWorkspaceStatus(home, workspaceId, 'briefed');
   return { workspaceId, root, reviewPackage: review.artifact, pendingApprovals: review.pendingApprovals };
 }

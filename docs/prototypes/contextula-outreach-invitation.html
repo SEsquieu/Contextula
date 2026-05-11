@@ -8,16 +8,16 @@
     :root {
       color-scheme: dark;
       --black:#030303;
-      --charcoal:#0b0909;
-      --panel:#120f0e;
+      --ink:#080606;
+      --charcoal:#100c0b;
       --bone:#f4ead9;
-      --paper:#d9c6a8;
-      --muted:#a8937f;
+      --paper:#dbc49a;
+      --muted:#a99478;
       --gold:#b99658;
-      --gold2:#6e542b;
-      --blood:#d7192a;
-      --blood2:#7b0811;
-      --line:rgba(185,150,88,.42);
+      --gold2:#6f5228;
+      --blood:#c91424;
+      --blood2:#6f0710;
+      --line:rgba(185,150,88,.45);
       --soft-line:rgba(244,234,217,.13);
       --serif: Georgia, 'Times New Roman', ui-serif, serif;
       --sans: Inter, ui-sans-serif, system-ui, Segoe UI, Arial, sans-serif;
@@ -29,8 +29,9 @@
       min-height:100vh;
       color:var(--bone);
       background:
-        radial-gradient(circle at 50% 0%, rgba(215,25,42,.13), transparent 34%),
-        linear-gradient(180deg,#020202,#090707 45%,#020202);
+        radial-gradient(circle at 50% 0%, rgba(201,20,36,.14), transparent 34%),
+        radial-gradient(circle at 12% 28%, rgba(185,150,88,.06), transparent 20%),
+        linear-gradient(180deg,#020202,#090606 46%,#020202);
       font-family:var(--sans);
     }
     body::before {
@@ -39,10 +40,12 @@
       inset:0;
       pointer-events:none;
       background:
-        radial-gradient(circle at 22% 18%, rgba(244,234,217,.05) 0 1px, transparent 1.3px),
-        radial-gradient(circle at 74% 42%, rgba(185,150,88,.045) 0 1px, transparent 1.3px);
-      background-size:28px 28px,37px 37px;
-      opacity:.8;
+        radial-gradient(circle at 22% 18%, rgba(244,234,217,.06) 0 1px, transparent 1.3px),
+        radial-gradient(circle at 74% 42%, rgba(185,150,88,.045) 0 1px, transparent 1.3px),
+        linear-gradient(90deg, transparent 0 97%, rgba(185,150,88,.035) 97% 100%);
+      background-size:28px 28px,37px 37px,73px 73px;
+      opacity:.65;
+      mix-blend-mode:screen;
     }
     a { color:inherit; }
 
@@ -50,30 +53,44 @@
       position:relative;
       width:min(1040px, calc(100vw - 28px));
       margin:24px auto 54px;
-      min-height:1540px;
       overflow:hidden;
       border:1px solid var(--line);
       background:
-        linear-gradient(180deg, rgba(8,6,6,.92), rgba(4,3,3,.98)),
-        radial-gradient(circle at 50% 0, rgba(215,25,42,.10), transparent 36%);
-      box-shadow:0 50px 160px rgba(0,0,0,.72), inset 0 0 0 1px rgba(244,234,217,.035);
+        radial-gradient(circle at 50% 8%, rgba(201,20,36,.16), transparent 31%),
+        linear-gradient(180deg, rgba(8,6,6,.96), rgba(4,3,3,.99));
+      box-shadow:0 50px 160px rgba(0,0,0,.72), inset 0 0 0 1px rgba(244,234,217,.04);
     }
     .sheet::before {
       content:"";
       position:absolute;
-      inset:16px;
-      border:1px solid rgba(185,150,88,.25);
+      inset:15px;
+      border:1px solid rgba(185,150,88,.28);
+      box-shadow:inset 0 0 0 1px rgba(201,20,36,.10);
       pointer-events:none;
-      z-index:5;
+      z-index:8;
     }
-    .corner { position:absolute; width:92px; height:92px; z-index:6; pointer-events:none; opacity:.86; }
-    .corner::before,.corner::after { content:""; position:absolute; background:var(--gold); box-shadow:0 0 18px rgba(185,150,88,.23); }
-    .corner::before { width:1px; height:82px; }
-    .corner::after { width:82px; height:1px; }
-    .corner.tl { left:26px; top:26px; border-top:1px solid var(--line); border-left:1px solid var(--line); }
-    .corner.tr { right:26px; top:26px; border-top:1px solid var(--line); border-right:1px solid var(--line); transform:scaleX(-1); }
-    .corner.bl { left:26px; bottom:26px; border-bottom:1px solid var(--line); border-left:1px solid var(--line); transform:scaleY(-1); }
-    .corner.br { right:26px; bottom:26px; border-bottom:1px solid var(--line); border-right:1px solid var(--line); transform:scale(-1); }
+    .sheet::after {
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.20;
+      background:
+        linear-gradient(115deg, transparent 0 42%, rgba(255,238,200,.06) 43%, transparent 44% 100%),
+        repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 5px);
+      z-index:7;
+    }
+    .corner { position:absolute; width:108px; height:108px; z-index:9; pointer-events:none; opacity:.94; }
+    .corner::before,.corner::after { content:""; position:absolute; background:linear-gradient(var(--gold),var(--gold2)); box-shadow:0 0 18px rgba(185,150,88,.22); }
+    .corner::before { width:1px; height:92px; left:14px; top:0; }
+    .corner::after { width:92px; height:1px; left:0; top:14px; }
+    .corner i::before,.corner i::after { content:""; position:absolute; border:1px solid rgba(185,150,88,.34); transform:rotate(45deg); }
+    .corner i::before { width:26px; height:26px; left:24px; top:24px; }
+    .corner i::after { width:12px; height:12px; left:44px; top:44px; background:rgba(201,20,36,.34); }
+    .corner.tl { left:22px; top:22px; border-top:1px solid var(--line); border-left:1px solid var(--line); }
+    .corner.tr { right:22px; top:22px; border-top:1px solid var(--line); border-right:1px solid var(--line); transform:scaleX(-1); }
+    .corner.bl { left:22px; bottom:22px; border-bottom:1px solid var(--line); border-left:1px solid var(--line); transform:scaleY(-1); }
+    .corner.br { right:22px; bottom:22px; border-bottom:1px solid var(--line); border-right:1px solid var(--line); transform:scale(-1); }
 
     .masthead {
       position:relative;
@@ -81,138 +98,229 @@
       display:flex;
       justify-content:center;
       align-items:center;
-      gap:18px;
-      padding:40px 56px 18px;
+      gap:22px;
+      padding:28px 56px 14px;
       text-align:center;
     }
-    .mark {
-      width:76px;
-      height:76px;
-      overflow:hidden;
-      border-radius:16px;
-      background:#050505;
-      box-shadow:0 0 36px rgba(215,25,42,.38);
-      flex:0 0 auto;
+    .brand-sigil {
+      position:relative;
+      width:96px;
+      height:96px;
+      display:grid;
+      place-items:center;
+      color:var(--blood);
+      font-family:var(--serif);
+      font-size:96px;
+      font-weight:900;
+      line-height:.72;
+      letter-spacing:-.14em;
+      text-shadow:0 0 12px rgba(201,20,36,.42), 0 10px 34px rgba(0,0,0,.95);
+      filter:drop-shadow(0 0 12px rgba(201,20,36,.25));
     }
-    .mark img { width:132%; height:132%; object-fit:cover; transform:translate(-12%,-12%); display:block; }
+    .brand-sigil::before,
+    .brand-sigil::after {
+      content:"";
+      position:absolute;
+      right:20px;
+      width:0;
+      height:0;
+      border-left:6px solid transparent;
+      border-right:6px solid transparent;
+      border-top:18px solid #f4ead9;
+      transform:rotate(13deg);
+      filter:drop-shadow(0 1px 2px rgba(0,0,0,.72));
+    }
+    .brand-sigil::before { top:32px; }
+    .brand-sigil::after { top:51px; transform:rotate(-10deg); }
     .wordmark {
       font-family:var(--serif);
-      font-size:clamp(46px,6vw,76px);
-      line-height:.82;
-      letter-spacing:-.055em;
-      text-transform:none;
+      font-size:clamp(54px,6.8vw,80px);
+      line-height:.78;
+      letter-spacing:-.058em;
+      color:#f2e7d3;
+      text-shadow:0 10px 42px rgba(0,0,0,.9);
     }
-    .tagline { color:var(--blood); font-style:italic; font-family:var(--serif); font-size:17px; margin-top:6px; }
+    .tagline {
+      color:var(--blood);
+      font-style:italic;
+      font-family:var(--serif);
+      font-size:18px;
+      margin-top:8px;
+      letter-spacing:.025em;
+    }
 
     .hero {
       position:relative;
-      min-height:500px;
+      min-height:594px;
       margin:0 34px;
+      overflow:hidden;
+      border-top:1px solid rgba(185,150,88,.20);
+      border-bottom:1px solid rgba(185,150,88,.22);
       background:
-        linear-gradient(90deg, rgba(3,3,3,.80) 0%, rgba(3,3,3,.48) 45%, rgba(3,3,3,.18) 100%),
-        linear-gradient(180deg, rgba(3,3,3,.10), rgba(3,3,3,.78)),
-        url('assets/contextula-proposal-hero-castle.png') center top / cover no-repeat;
+        radial-gradient(circle at 78% 19%, rgba(201,20,36,.62) 0 7%, rgba(201,20,36,.25) 8% 14%, transparent 25%),
+        linear-gradient(90deg, rgba(3,3,3,.79) 0%, rgba(3,3,3,.43) 43%, rgba(3,3,3,.03) 100%),
+        linear-gradient(180deg, rgba(3,3,3,.01), rgba(3,3,3,.58)),
+        url('assets/contextula-proposal-hero-castle.png') 68% top / cover no-repeat;
     }
-    .hero::after { content:""; position:absolute; inset:0; border-top:1px solid rgba(185,150,88,.2); border-bottom:1px solid rgba(185,150,88,.2); pointer-events:none; }
+    .hero::before {
+      content:"";
+      position:absolute;
+      inset:18px;
+      border:1px solid rgba(185,150,88,.22);
+      pointer-events:none;
+    }
+    .hero::after {
+      content:"✦";
+      position:absolute;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      color:var(--blood);
+      font-size:18px;
+      text-shadow:0 0 16px rgba(201,20,36,.65);
+    }
     .headline {
       position:absolute;
       left:42px;
-      top:72px;
-      max-width:470px;
+      top:70px;
+      max-width:482px;
       font-family:var(--serif);
-      font-size:clamp(52px,7vw,86px);
-      line-height:.92;
-      letter-spacing:-.035em;
-      text-shadow:0 12px 40px rgba(0,0,0,.75);
+      font-size:clamp(60px,7.6vw,96px);
+      line-height:.88;
+      letter-spacing:-.04em;
+      color:#f5ead9;
+      text-shadow:0 14px 46px rgba(0,0,0,.86);
     }
-    .headline span { display:block; color:var(--blood); font-style:italic; }
+    .headline span { display:block; color:var(--blood); font-style:italic; font-weight:500; }
+    .hero-kicker {
+      position:absolute;
+      left:48px;
+      bottom:62px;
+      color:#c9b38d;
+      font-family:var(--serif);
+      font-size:16px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      text-shadow:0 8px 30px rgba(0,0,0,.9);
+    }
+
     .proposal {
       position:absolute;
-      right:38px;
-      top:54px;
-      width:322px;
-      min-height:356px;
-      padding:28px 26px;
+      right:34px;
+      top:50px;
+      width:342px;
+      min-height:384px;
+      padding:26px 26px 24px;
       color:#2c1c15;
       background:
-        radial-gradient(circle at 18% 8%, rgba(255,255,255,.88), transparent 30%),
-        repeating-linear-gradient(0deg, rgba(78,49,26,.035) 0 1px, transparent 1px 5px),
-        linear-gradient(135deg, rgba(255,247,229,.98), rgba(205,181,137,.96));
-      border:1px solid rgba(70,42,22,.55);
-      outline:1px solid rgba(255,246,222,.42);
-      outline-offset:-10px;
-      box-shadow:0 30px 80px rgba(0,0,0,.52), inset 0 0 0 4px rgba(91,56,31,.08);
+        radial-gradient(circle at 18% 8%, rgba(255,255,255,.82), transparent 28%),
+        radial-gradient(circle at 92% 92%, rgba(84,38,18,.16), transparent 28%),
+        repeating-linear-gradient(0deg, rgba(78,49,26,.04) 0 1px, transparent 1px 5px),
+        linear-gradient(135deg, rgba(255,246,225,.99), rgba(201,176,131,.97));
+      border:1px solid rgba(70,42,22,.62);
+      outline:1px solid rgba(255,246,222,.5);
+      outline-offset:-11px;
+      box-shadow:0 34px 90px rgba(0,0,0,.58), inset 0 0 0 4px rgba(91,56,31,.08), inset 0 0 44px rgba(68,37,18,.12);
     }
-    .proposal .seal { width:54px; height:54px; margin:0 auto 12px; border-radius:50%; overflow:hidden; background:#060606; box-shadow:0 0 22px rgba(215,25,42,.25); }
+    .proposal::before,.proposal::after { content:""; position:absolute; inset:17px; pointer-events:none; border:1px solid rgba(70,42,22,.18); }
+    .proposal::after { inset:24px; border-style:dotted; opacity:.72; }
+    .proposal .seal {
+      position:relative;
+      width:58px;
+      height:58px;
+      margin:0 auto 12px;
+      border-radius:50%;
+      overflow:hidden;
+      background:#060606;
+      box-shadow:0 0 0 2px rgba(91,56,31,.32), 0 0 22px rgba(201,20,36,.25);
+      z-index:1;
+    }
     .proposal .seal img { width:140%; height:140%; object-fit:cover; transform:translate(-14%,-14%); }
-    .proposal h2 { margin:0 0 16px; text-align:center; color:#4a251f; font-family:var(--serif); font-size:17px; letter-spacing:.17em; text-transform:uppercase; }
-    .meta { display:grid; grid-template-columns:1fr 1fr; gap:7px 12px; margin-bottom:16px; color:#6e4d39; font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
-    .proposal p { margin:0 0 12px; text-align:center; font-family:var(--serif); color:#4b362b; line-height:1.48; }
-    .proposal li { padding:8px 0; border-top:1px solid rgba(70,42,22,.2); font-family:var(--serif); }
-    .proposal ul { list-style:none; padding:0; margin:0; }
+    .proposal h2 { position:relative; z-index:1; margin:0 0 13px; text-align:center; color:#4a251f; font-family:var(--serif); font-size:17px; letter-spacing:.2em; text-transform:uppercase; }
+    .proposal h2::before,.proposal h2::after { content:""; display:inline-block; width:34px; height:1px; margin:0 10px 5px; background:rgba(70,42,22,.38); }
+    .meta { position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; gap:7px 12px; margin-bottom:16px; color:#6e4d39; font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+    .proposal p { position:relative; z-index:1; margin:0 0 11px; text-align:center; font-family:var(--serif); color:#4b362b; line-height:1.43; }
+    .proposal ul { position:relative; z-index:1; list-style:none; padding:0; margin:0; }
+    .proposal li { padding:7px 0 7px 18px; border-top:1px solid rgba(70,42,22,.2); font-family:var(--serif); line-height:1.2; font-size:15px; }
+    .proposal li::before { content:"◆"; color:#8f1420; margin-left:-18px; margin-right:8px; font-size:9px; }
 
     .divider {
       display:grid;
       grid-template-columns:1fr auto 1fr;
       gap:16px;
       align-items:center;
-      margin:28px 58px 16px;
+      margin:20px 58px 12px;
       color:var(--bone);
       text-transform:uppercase;
       letter-spacing:.24em;
       font-size:12px;
       text-align:center;
     }
-    .divider::before,.divider::after { content:""; height:1px; background:linear-gradient(90deg, transparent, var(--gold), transparent); }
-    .diamond { color:var(--blood); margin:0 10px; }
+    .divider span::before,.divider span::after { content:"◆"; color:var(--blood); margin:0 12px; font-size:10px; }
+    .divider::before,.divider::after { content:""; height:1px; background:linear-gradient(90deg, transparent, var(--gold), var(--blood), var(--gold), transparent); }
 
     .preview {
       margin:0 58px;
-      border:1px solid rgba(185,150,88,.34);
+      border:1px solid rgba(185,150,88,.38);
       background:#080707;
-      box-shadow:0 24px 82px rgba(0,0,0,.54);
+      box-shadow:0 24px 82px rgba(0,0,0,.56), inset 0 0 0 1px rgba(201,20,36,.08);
       overflow:hidden;
     }
-    .browser { height:34px; display:flex; align-items:center; gap:8px; padding:0 14px; border-bottom:1px solid rgba(185,150,88,.2); color:#746557; font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
-    .lamp { width:8px; height:8px; border-radius:50%; background:var(--blood); box-shadow:0 0 12px rgba(215,25,42,.55); }
+    .browser { height:32px; display:flex; align-items:center; gap:8px; padding:0 14px; border-bottom:1px solid rgba(185,150,88,.22); color:#746557; font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
+    .lamp { width:8px; height:8px; border-radius:50%; background:var(--blood); box-shadow:0 0 12px rgba(201,20,36,.55); }
     .preview img { display:block; width:100%; max-height:430px; object-fit:cover; object-position:top center; }
 
     .pillars {
       display:grid;
       grid-template-columns:repeat(5,1fr);
-      margin:0 58px 28px;
-      border-left:1px solid rgba(185,150,88,.3);
-      border-right:1px solid rgba(185,150,88,.3);
-      border-bottom:1px solid rgba(185,150,88,.3);
-      background:linear-gradient(180deg, rgba(18,14,13,.95), rgba(8,7,7,.98));
+      margin:0 58px 20px;
+      border-left:1px solid rgba(185,150,88,.32);
+      border-right:1px solid rgba(185,150,88,.32);
+      border-bottom:1px solid rgba(185,150,88,.32);
+      background:linear-gradient(180deg, rgba(18,14,13,.96), rgba(8,7,7,.99));
     }
     .pillar {
       position:relative;
-      min-height:150px;
-      padding:20px 12px 16px;
+      min-height:126px;
+      padding:15px 10px 12px;
       text-align:center;
-      border-right:1px solid rgba(185,150,88,.20);
+      border-right:1px solid rgba(185,150,88,.21);
     }
     .pillar:last-child { border-right:0; }
     .pillar::after { content:"◆"; position:absolute; right:-7px; top:48%; color:var(--blood); font-size:10px; background:#090707; padding:2px; }
     .pillar:last-child::after { display:none; }
-    .icon { color:var(--gold); font-size:27px; margin-bottom:12px; text-shadow:0 0 18px rgba(185,150,88,.22); }
-    .pillar h3 { margin:0 0 8px; font-family:var(--serif); font-size:18px; font-weight:500; }
-    .pillar p { margin:0; color:var(--muted); font-size:12px; line-height:1.48; }
+    .crest {
+      position:relative;
+      width:46px;
+      height:46px;
+      margin:0 auto 10px;
+      display:grid;
+      place-items:center;
+      color:var(--gold);
+      font-size:23px;
+      border:1px solid rgba(185,150,88,.45);
+      border-radius:50%;
+      box-shadow:inset 0 0 0 4px rgba(185,150,88,.06), 0 0 20px rgba(185,150,88,.11);
+      font-family:var(--serif);
+    }
+    .crest::before { content:""; position:absolute; inset:5px; border:1px solid rgba(201,20,36,.22); border-radius:50%; }
+    .pillar h3 { margin:0 0 7px; font-family:var(--serif); font-size:17px; font-weight:500; text-transform:uppercase; letter-spacing:.04em; }
+    .pillar p { margin:0; color:var(--muted); font-size:11.5px; line-height:1.42; }
 
     .closing {
       position:relative;
-      min-height:280px;
+      min-height:292px;
       margin:0 34px 34px;
       overflow:hidden;
-      border:1px solid rgba(185,150,88,.32);
+      border:1px solid rgba(185,150,88,.34);
       background:
-        linear-gradient(90deg, rgba(5,4,4,.56) 0%, rgba(5,4,4,.38) 38%, rgba(5,4,4,.44) 100%),
-        url('assets/contextula-candle-closing.png') center center / cover no-repeat;
+        linear-gradient(90deg, rgba(5,4,4,.42) 0%, rgba(5,4,4,.72) 38%, rgba(5,4,4,.42) 100%),
+        url('assets/contextula-candle-envelope-closing.png') center center / cover no-repeat;
     }
-    .closing-copy { width:min(520px,70%); margin:0 auto; padding:42px 0; text-align:center; }
-    .closing h2 { margin:0 0 12px; font-family:var(--serif); font-size:clamp(38px,5vw,64px); line-height:1; font-weight:500; }
-    .closing p { color:var(--paper); line-height:1.65; margin:0 auto 22px; }
+    .closing::before { content:""; position:absolute; inset:17px; border:1px solid rgba(185,150,88,.23); pointer-events:none; }
+    .closing-copy { position:relative; width:min(510px,68%); margin:0 auto; padding:46px 0 44px; text-align:center; text-shadow:0 10px 34px rgba(0,0,0,.9); }
+    .closing h2 { margin:0 0 12px; font-family:var(--serif); font-size:clamp(36px,4.7vw,58px); line-height:1; font-weight:500; }
+    .closing p { color:var(--paper); line-height:1.62; margin:0 auto 22px; font-family:var(--serif); font-size:17px; }
 
     .button {
       --btn-bg:linear-gradient(180deg,#2b2420,#100c0b);
@@ -221,9 +329,9 @@
       display:inline-flex;
       align-items:center;
       justify-content:center;
-      min-height:52px;
-      padding:14px 30px;
-      border:1px solid rgba(185,150,88,.58);
+      min-height:50px;
+      padding:13px 30px;
+      border:1px solid rgba(185,150,88,.62);
       color:var(--bone);
       background:var(--btn-bg);
       text-decoration:none;
@@ -232,61 +340,62 @@
       font-size:11px;
       font-weight:900;
       box-shadow:0 18px 44px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,240,210,.14), inset 0 -8px 18px rgba(0,0,0,.28);
-      clip-path:polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%);
+      clip-path:polygon(13px 0, calc(100% - 13px) 0, 100% 50%, calc(100% - 13px) 100%, 13px 100%, 0 50%);
     }
-    .button::after { content:"✦"; margin-left:12px; color:var(--gold); }
-    .button.primary { --btn-bg:linear-gradient(180deg,#ef3140 0%, var(--blood) 42%, #760911 100%); color:white; border-color:rgba(255,173,133,.58); box-shadow:0 0 34px rgba(215,25,42,.28), 0 20px 54px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,221,210,.22), inset 0 -10px 22px rgba(54,0,7,.36); }
-    .hero-actions { position:absolute; left:42px; bottom:56px; display:flex; gap:14px; flex-wrap:wrap; }
+    .button::before,.button::after { color:var(--gold); font-weight:400; }
+    .button::before { content:"✦"; margin-right:12px; }
+    .button::after { content:"✦"; margin-left:12px; }
+    .button.primary { --btn-bg:linear-gradient(180deg,#d72b38 0%, var(--blood) 42%, #690810 100%); color:white; border-color:rgba(255,173,133,.62); box-shadow:0 0 34px rgba(201,20,36,.28), 0 20px 54px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,221,210,.22), inset 0 -10px 22px rgba(54,0,7,.36); }
 
-    footer { margin:0 58px 42px; display:flex; justify-content:space-between; gap:18px; border-top:1px solid rgba(185,150,88,.2); padding-top:18px; color:#756657; text-transform:uppercase; letter-spacing:.16em; font-size:10px; }
+    footer { position:relative; z-index:10; margin:0 58px 48px; display:flex; justify-content:space-between; gap:18px; border-top:1px solid rgba(185,150,88,.2); padding-top:18px; padding-bottom:8px; color:#756657; text-transform:uppercase; letter-spacing:.16em; font-size:10px; }
 
     @media(max-width:900px){
-      .sheet{width:calc(100vw - 18px);padding-bottom:12px}.masthead{padding-top:34px}.hero{min-height:820px}.headline{position:relative;left:auto;top:auto;padding:42px 34px 0}.proposal{position:relative;right:auto;top:auto;width:auto;margin:24px 34px}.hero-actions{position:relative;left:auto;bottom:auto;padding:0 34px 34px}.pillars{grid-template-columns:1fr 1fr}.pillar:nth-child(even){border-right:0}.closing-copy{width:82%}
+      .sheet{width:calc(100vw - 18px);padding-bottom:12px}.masthead{padding-top:34px}.hero{min-height:880px;background-position:65% center}.headline{position:relative;left:auto;top:auto;padding:42px 34px 0}.hero-kicker{position:relative;left:auto;bottom:auto;width:auto;padding:16px 34px 0}.proposal{position:relative;right:auto;top:auto;width:auto;margin:24px 34px}.pillars{grid-template-columns:1fr 1fr}.pillar:nth-child(even){border-right:0}.closing-copy{width:82%}
     }
     @media(max-width:620px){
-      .masthead{flex-direction:column}.hero{margin:0 20px}.preview,.pillars,.divider,footer{margin-left:30px;margin-right:30px}.pillars{grid-template-columns:1fr}.pillar{border-right:0;border-bottom:1px solid rgba(185,150,88,.2)}.pillar::after{display:none}.closing{margin-left:20px;margin-right:20px}.closing-copy{width:88%}.headline{font-size:48px}.wordmark{font-size:42px}footer{flex-direction:column}
+      .masthead{flex-direction:column}.brand-sigil{width:82px;height:82px;font-size:82px}.brand-sigil::before,.brand-sigil::after{right:15px;border-left-width:6px;border-right-width:6px;border-top-width:18px}.brand-sigil::before{top:27px}.brand-sigil::after{top:44px}.hero{margin:0 20px}.preview,.pillars,.divider,footer{margin-left:30px;margin-right:30px}.pillars{grid-template-columns:1fr}.pillar{border-right:0;border-bottom:1px solid rgba(185,150,88,.2)}.pillar::after{display:none}.closing{margin-left:20px;margin-right:20px}.closing-copy{width:88%}.headline{font-size:48px}.wordmark{font-size:42px}footer{flex-direction:column}
     }
   </style>
 </head>
 <body>
   <main class="sheet">
-    <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+    <i class="corner tl"><i></i></i><i class="corner tr"><i></i></i><i class="corner bl"><i></i></i><i class="corner br"><i></i></i>
 
     <header class="masthead">
-      <div class="mark"><img src="assets/contextula-fanged-c-mark.png" alt="Contextula fanged C mark"></div>
+      <div class="brand-sigil" aria-label="Contextula fanged C mark">C</div>
       <div><div class="wordmark">Contextula</div><div class="tagline">Persistent context. Continuous growth.</div></div>
     </header>
 
     <section class="hero">
       <div class="headline">A modern presence. <span>Eternal impact.</span></div>
+      <p class="hero-kicker">Private proposal · prepared for review</p>
       <aside class="proposal">
         <div class="seal"><img src="assets/contextula-fanged-c-mark.png" alt="Contextula seal"></div>
         <h2>Private proposal</h2>
-        <div class="meta"><span>Prepared for</span><span>Redford & Co.</span><span>Brief no.</span><span>CTX-001</span><span>Status</span><span>Private</span></div>
-        <p>A tailored first pass, prepared as proof that your operator has already begun.</p>
-        <ul><li>Site analysis and positioning</li><li>Custom preview prepared privately</li><li>Performance, visibility, and trust</li><li>Continuous evolution with approval gates</li></ul>
+        <div class="meta"><span>Prepared for</span><span>Redford &amp; Co.</span><span>Brief no.</span><span>CTX-001</span><span>Status</span><span>Sealed</span></div>
+        <p>This invitation is not a template. It is a prepared preview: mood, message, structure, and next motion held together in context.</p>
+        <ul><li>Atmosphere and composition shaped to the brand</li><li>A custom preview staged before anything goes live</li><li>Performance, visibility, and trust preserved by review</li><li>Continuous improvement through approval gates</li></ul>
       </aside>
-      <div class="hero-actions"><a class="button primary" href="#preview">View your custom preview</a></div>
     </section>
 
     <div id="preview" class="divider"><span>A preview, prepared for you</span></div>
     <section class="preview">
       <div class="browser"><span class="lamp"></span><span class="lamp"></span><span class="lamp"></span><span>private-preview.contextula</span></div>
-      <img src="assets/contextula-preview-browser-redford.png" alt="Prepared website preview">
+      <img src="assets/contextula-preview-browser-timeless.png" alt="Prepared website preview">
     </section>
 
     <section class="pillars" aria-label="Contextula capabilities">
-      <article class="pillar"><div class="icon">⌖</div><h3>Strategic Design</h3><p>Purposeful direction that reflects your business.</p></article>
-      <article class="pillar"><div class="icon">⚡</div><h3>Performance</h3><p>Fast pages that respect attention.</p></article>
-      <article class="pillar"><div class="icon">↗</div><h3>Visibility</h3><p>Structured content and local signals.</p></article>
-      <article class="pillar"><div class="icon">◆</div><h3>Trust</h3><p>Approval gates and preserved context.</p></article>
-      <article class="pillar"><div class="icon">∞</div><h3>Evolution</h3><p>Your presence keeps improving.</p></article>
+      <article class="pillar"><div class="crest">⌖</div><h3>Strategic Design</h3><p>Direction that carries the emotional weight of the business.</p></article>
+      <article class="pillar"><div class="crest">⚡</div><h3>Performance</h3><p>Fast pages that respect attention and intent.</p></article>
+      <article class="pillar"><div class="crest">↗</div><h3>Visibility</h3><p>Structured signals for search, local trust, and discovery.</p></article>
+      <article class="pillar"><div class="crest">◆</div><h3>Trust</h3><p>Preview branches, approvals, and preserved customer context.</p></article>
+      <article class="pillar"><div class="crest">∞</div><h3>Evolution</h3><p>The presence keeps learning instead of going stale.</p></article>
     </section>
 
     <section class="closing">
       <div class="closing-copy">
         <h2>An invitation, extended.</h2>
-        <p>Reply with the details your operator should know. Contextula will prepare the next version, keep the memory, and wait for approval before anything goes live.</p>
+        <p>Send the details worth remembering. Contextula will carry them forward, prepare the next version, and wait for approval before the seal is broken.</p>
         <a class="button primary" href="#preview">Accept the invitation</a>
       </div>
     </section>

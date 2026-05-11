@@ -126,6 +126,8 @@ try {
   await execFileAsync('git', ['-c', 'user.name=Contextula Test', '-c', 'user.email=contextula@example.invalid', 'commit', '-m', 'Initial preview repo'], { cwd: previewRepo });
   const sitePreview = await run(['site', 'preview', workspaceId, '--home', home, '--repo', previewRepo, '--branch', 'preview', '--viewport', 'desktop', '--no-push']);
   if (!sitePreview.includes('site preview:') || !sitePreview.includes('pushed: no') || !sitePreview.includes('approval:')) throw new Error(`Site preview failed: ${sitePreview}`);
+  const siteLoop = await run(['site', 'loop', workspaceId, '--home', home, '--repo', previewRepo, '--branch', 'preview', '--viewport', 'desktop', '--provider', 'static', '--request', 'Run the customer preview loop without changing production.', '--no-push']);
+  if (!siteLoop.includes('site change:') || !siteLoop.includes('site critique:') || !siteLoop.includes('site preview:') || !siteLoop.includes('production approval:')) throw new Error(`Site loop failed: ${siteLoop}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

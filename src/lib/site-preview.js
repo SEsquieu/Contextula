@@ -38,7 +38,10 @@ async function resolveBuild(root, requestedBuild) {
 
 async function changedFiles(repo) {
   const status = await git(repo, ['status', '--porcelain']);
-  return status.split(/\r?\n/).filter(Boolean).map((line) => line.slice(3).trim());
+  return status.split(/\r?\n/).filter(Boolean).map((line) => {
+    const value = line.slice(2).trim();
+    return value.includes(' -> ') ? value.split(' -> ').pop() : value;
+  });
 }
 
 async function copyBuildFiles(buildRoot, repo) {
@@ -82,7 +85,7 @@ export async function publishSitePreview(home, workspaceId, { build: requestedBu
   const commitMessage = `Publish Contextula preview ${previewId}`;
   let commit = null;
   if (files.length) {
-    await git(repoPath, ['add', ...files]);
+    await git(repoPath, ['add', '-A']);
     await git(repoPath, ['-c', 'user.name=Contextula', '-c', 'user.email=contextula@example.invalid', 'commit', '-m', commitMessage]);
     commit = await git(repoPath, ['rev-parse', '--short', 'HEAD']);
     if (push) await git(repoPath, ['push', '-u', 'origin', branch]);

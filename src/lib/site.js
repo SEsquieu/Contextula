@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, readJsonl, VERSION, writeJson } from './util.js';
 import { resolveWorkspace } from './storage.js';
 import { classifyWorkspace } from './classification.js';
@@ -247,4 +247,104 @@ export async function buildStaticSite(home, workspaceId) {
   await writeFile(path.join(buildRoot, 'contextula', 'build-report.md'), report, 'utf8');
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.build.generated', at: now(), artifact: `${relativeRoot}/index.html`, build: relativeRoot, routes: build.routes.length, linkCheck: linkCheck.ok });
   return { build, linkCheck, artifact: `${relativeRoot}/index.html`, report: `${relativeRoot}/contextula/build-report.md` };
+}
+
+async function exists(file) {
+  try {
+    await access(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function latestBuild(root) {
+  const buildsRoot = path.join(root, 'builds');
+  const entries = (await readdir(buildsRoot, { withFileTypes: true }).catch(() => [])).filter((entry) => entry.isDirectory() && entry.name.startsWith('sitebuild_'));
+  const builds = [];
+  for (const entry of entries) {
+    const build = await readJson(path.join(buildsRoot, entry.name, 'contextula', 'build.json'), null).catch(() => null);
+    if (build) builds.push({ ...build, directory: entry.name });
+  }
+  builds.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  return builds[0] || null;
+}
+
+function critiquePlanAndBuild({ plan, build, linkCheck, routeFiles }) {
+  const findings = [];
+  const strengths = [];
+
+  if (linkCheck?.ok) strengths.push('Internal navigation link check passed.');
+  else findings.push({ severity: 'high', area: 'navigation', message: 'Internal navigation has missing route targets.', recommendation: 'Fix sitemap routes or generated navigation before review/deploy.' });
+
+  if (plan.routes.length === build.routes.length) strengths.push(`Build includes all ${plan.routes.length} planned route(s).`);
+  else findings.push({ severity: 'high', area: 'routing', message: `Plan has ${plan.routes.length} route(s), but build has ${build.routes.length}.`, recommendation: 'Regenerate the build from the current site plan.' });
+
+  for (const route of plan.routes) {
+    if (!route.purpose || !route.opsGoal) findings.push({ severity: 'medium', area: 'page-goals', message: `${route.path} is missing a clear purpose or ops goal.`, recommendation: 'Strengthen the page plan before agentic generation uses it.' });
+    if (!routeFiles.find((item) => item.path === route.path)?.exists) findings.push({ severity: 'high', area: 'artifact', message: `${route.path} did not generate its expected HTML file.`, recommendation: 'Regenerate the build and inspect routeToFile mapping.' });
+  }
+
+  const navRoutes = plan.routes.filter((route) => route.nav);
+  if (navRoutes.length >= Math.min(2, plan.routes.length)) strengths.push('Global navigation is present across planned routes.');
+  else findings.push({ severity: 'medium', area: 'navigation', message: 'Too few routes are included in global navigation.', recommendation: 'Mark the main visitor paths as nav routes.' });
+
+  if (plan.classification?.kind === 'personal-project-hub') {
+    const forbidden = plan.routes.filter((route) => ['/services/', '/contact/'].includes(route.path));
+    if (forbidden.length) findings.push({ severity: 'medium', area: 'classification', message: 'Project hub plan includes service-business routes.', recommendation: 'Keep the project hub focused on projects, notes, status, and identity continuity.' });
+    else strengths.push('Project-hub guardrail passed: no service-business funnel routes were introduced.');
+  }
+
+  if (plan.classification?.kind === 'service-business') {
+    const paths = new Set(plan.routes.map((route) => route.path));
+    if (paths.has('/services/') && paths.has('/contact/')) strengths.push('Service-business route coverage includes services and contact paths.');
+    else findings.push({ severity: 'medium', area: 'classification', message: 'Service-business plan lacks services or contact routes.', recommendation: 'Add grounded conversion routes before build review.' });
+  }
+
+  const high = findings.filter((finding) => finding.severity === 'high').length;
+  const medium = findings.filter((finding) => finding.severity === 'medium').length;
+  const score = Math.max(0, 100 - high * 30 - medium * 12 - findings.filter((finding) => finding.severity === 'low').length * 5);
+  const verdict = high ? 'blocked' : medium ? 'needs-review' : 'ready-for-review';
+  return { score, verdict, strengths, findings };
+}
+
+export async function critiqueStaticSite(home, workspaceId, { build: requestedBuild = 'latest' } = {}) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  const plan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
+  if (!plan) throw new Error('Missing site/sitemap.json. Run: contextula site plan <workspace>');
+
+  const build = requestedBuild === 'latest'
+    ? await latestBuild(root)
+    : await readJson(path.join(root, requestedBuild, 'contextula', 'build.json'), null).catch(() => null);
+  if (!build) throw new Error('Missing site build. Run: contextula site build <workspace>');
+
+  const buildRoot = path.join(root, build.root || `builds/${build.directory || build.id}`);
+  const linkCheck = await readJson(path.join(buildRoot, 'contextula', 'link-check.json'), { ok: false, checked: [], missing: [] });
+  const routeFiles = [];
+  for (const route of plan.routes) {
+    const file = routeToFile(route.path);
+    routeFiles.push({ path: route.path, file, exists: await exists(path.join(buildRoot, file)) });
+  }
+
+  const critique = {
+    id: id('sitecrit'),
+    version: 1,
+    createdAt: now(),
+    workspaceId: record.id,
+    workspaceName: record.name || record.slug,
+    build: build.root || `builds/${build.directory || build.id}`,
+    plan: 'site/sitemap.json',
+    classification: plan.classification,
+    routeFiles,
+    linkCheck: { ok: Boolean(linkCheck.ok), checked: linkCheck.checked?.length || 0, missing: linkCheck.missing || [] },
+    ...critiquePlanAndBuild({ plan, build, linkCheck, routeFiles })
+  };
+
+  const relativeArtifact = `${critique.build}/contextula/site-critique.json`;
+  const relativeReport = `${critique.build}/contextula/site-critique.md`;
+  await writeJson(path.join(root, relativeArtifact), critique);
+  const md = `# Site Critique\n\nWorkspace: ${critique.workspaceName}\nBuild: ${critique.build}\nCreated: ${critique.createdAt}\nVerdict: ${critique.verdict}\nScore: ${critique.score}\n\n## Strengths\n\n${critique.strengths.map((item) => `- ${item}`).join('\n') || '- None recorded.'}\n\n## Findings\n\n${critique.findings.map((finding) => `- [${finding.severity}] ${finding.area}: ${finding.message}\n  - Recommendation: ${finding.recommendation}`).join('\n') || '- No blocking findings.'}\n\n## Route files\n\n${critique.routeFiles.map((route) => `- ${route.path} -> ${route.file}: ${route.exists ? 'ok' : 'missing'}`).join('\n')}\n`;
+  await writeFile(path.join(root, relativeReport), md, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.critique.generated', at: now(), artifact: relativeReport, build: critique.build, verdict: critique.verdict, score: critique.score, findings: critique.findings.length });
+  return { critique, artifact: relativeArtifact, report: relativeReport };
 }

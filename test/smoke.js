@@ -99,6 +99,8 @@ try {
   if (!sitePlan.includes('site plan:') || !sitePlan.includes('approval:')) throw new Error(`Site plan failed: ${sitePlan}`);
   const siteBuild = await run(['site', 'build', workspaceId, '--home', home]);
   if (!siteBuild.includes('site build:') || !siteBuild.includes('link check: ok')) throw new Error(`Site build failed: ${siteBuild}`);
+  const siteCritique = await run(['site', 'critique', workspaceId, '--home', home]);
+  if (!siteCritique.includes('site critique:') || !siteCritique.includes('verdict:')) throw new Error(`Site critique failed: ${siteCritique}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

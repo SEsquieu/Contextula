@@ -103,6 +103,10 @@ try {
   if (!sitePrompt.includes('Contextula Multi-Page Site Task')) throw new Error(`Site prompt failed: ${sitePrompt}`);
   const siteBuild = await run(['site', 'build', workspaceId, '--home', home]);
   if (!siteBuild.includes('site build:') || !siteBuild.includes('link check: ok')) throw new Error(`Site build failed: ${siteBuild}`);
+  const siteChange = await run(['site', 'change', workspaceId, '--home', home, '--request', 'Add a phone CTA without changing navigation labels.', '--preserve', 'Keep route paths and existing button names stable.']);
+  if (!siteChange.includes('site change:') || !siteChange.includes('must preserve:') || !siteChange.includes('approval:')) throw new Error(`Site change brief failed: ${siteChange}`);
+  const sitePacketAfterChange = await run(['site', 'packet', workspaceId, '--home', home]);
+  if (!sitePacketAfterChange.includes('changeControl') || !sitePacketAfterChange.includes('Add a phone CTA')) throw new Error(`Site packet missing change control: ${sitePacketAfterChange}`);
   const siteGenerate = await run(['site', 'generate', workspaceId, '--home', home, '--provider', 'json', '--response', path.resolve('docs/fixtures/site-generate-response-good.json')]);
   if (!siteGenerate.includes('site generate:') || !siteGenerate.includes('provider run: site/provider-runs/srun_') || !siteGenerate.includes('approval:')) throw new Error(`Site generate failed: ${siteGenerate}`);
   const siteCritique = await run(['site', 'critique', workspaceId, '--home', home]);

@@ -159,6 +159,7 @@ export async function buildSitePacket(home, workspaceId, { variant = 'site-provi
   const sitePlan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
   const designSystem = await readJson(path.join(root, 'site', 'design-system.json'), null);
   const critiqueLearning = await readJson(path.join(root, 'site', 'critique-learning.json'), null);
+  const latestChangeBrief = await readLatestChangeBrief(root);
   const build = await latestBuild(root);
   const latestCritique = build ? await readJson(path.join(root, build.root || `builds/${build.directory || build.id}`, 'contextula', 'site-critique.json'), null) : null;
   return {
@@ -173,6 +174,7 @@ export async function buildSitePacket(home, workspaceId, { variant = 'site-provi
     sitePlan,
     designSystem,
     latestBuild: build ? { id: build.id, root: build.root || `builds/${build.directory || build.id}`, createdAt: build.createdAt, routes: build.routes || [] } : null,
+    changeControl: latestChangeBrief ? { artifact: latestChangeBrief.artifact, requestedAt: latestChangeBrief.requestedAt, requestedChange: latestChangeBrief.requestedChange, mustPreserve: latestChangeBrief.mustPreserve, mustChange: latestChangeBrief.mustChange, regenRisks: latestChangeBrief.regenRisks } : null,
     critiqueLearning,
     latestCritique: latestCritique ? { artifact: `${build.root || `builds/${build.directory || build.id}`}/contextula/site-critique.json`, verdict: latestCritique.verdict, score: latestCritique.score, findings: latestCritique.findings || [], strengths: latestCritique.strengths || [] } : null,
     policy: {
@@ -184,6 +186,90 @@ export async function buildSitePacket(home, workspaceId, { variant = 'site-provi
     },
     objective: 'Plan or generate a coherent multi-page static site package using the workspace sitemap, grounded claims, and critique-learning signals.'
   };
+}
+
+export async function generateSiteChangeBrief(home, workspaceId, { request, preserve, change } = {}) {
+  if (!request) throw new Error('Missing --request');
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  await mkdir(path.join(root, 'site', 'change-briefs'), { recursive: true });
+  const profile = await readJson(path.join(root, 'profile.json'), {});
+  const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []), 24);
+  const classification = classifyWorkspace(claims);
+  const sitePlan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
+  const designSystem = await readJson(path.join(root, 'site', 'design-system.json'), null);
+  const critiqueLearning = await readJson(path.join(root, 'site', 'critique-learning.json'), null);
+  const build = await latestBuild(root);
+  const briefId = id('change');
+  const artifact = `site/change-briefs/${briefId}.json`;
+
+  const externalDestinations = sitePlan?.externalDestinations || [];
+  const routePaths = (sitePlan?.routes || []).map((route) => route.path);
+  const highConfidenceFacts = claims.filter((claim) => (claim.confidence || 0) >= 0.85).slice(0, 10).map((claim) => claim.text);
+  const preserveItems = [
+    `Preserve workspace classification: ${classification.label}.`,
+    sitePlan?.globalNav?.length ? `Preserve global navigation labels unless the request explicitly changes navigation: ${sitePlan.globalNav.join(', ')}.` : null,
+    routePaths.length ? `Preserve existing route paths unless explicitly changed: ${routePaths.join(', ')}.` : null,
+    externalDestinations.length ? `Preserve known external destinations as clickable routes: ${externalDestinations.map((dest) => `${dest.label} -> ${dest.url}`).join('; ')}.` : null,
+    designSystem?.intent ? `Preserve design intent: ${designSystem.intent}` : null,
+    critiqueLearning?.verdict === 'ready-for-review' ? 'Preserve critique-proven strengths from the latest ready-for-review build.' : null,
+    ...highConfidenceFacts.map((fact) => `Preserve grounded fact: ${fact}`),
+    preserve ? `User-specified preserve rule: ${preserve}` : null
+  ].filter(Boolean);
+
+  const changeItems = [
+    `Implement requested change: ${request}`,
+    change ? `User-specified change target: ${change}` : null
+  ].filter(Boolean);
+
+  const brief = {
+    version: 1,
+    id: briefId,
+    kind: 'contextula.site.change-brief',
+    requestedAt: now(),
+    workspaceId: record.id,
+    workspaceName: record.name || record.slug,
+    profileName: profile.name || null,
+    classification: { kind: classification.kind, label: classification.label, primaryGoal: classification.primaryGoal },
+    requestedChange: request,
+    mustPreserve: preserveItems,
+    mustChange: changeItems,
+    regenRisks: [
+      'Do not rewrite unrelated body copy, button labels, route paths, or page hierarchy just because a provider is regenerating HTML.',
+      'Do not drop known active external routes or convert them into non-clickable status text.',
+      'Do not change approved visual identity or classification unless the request explicitly requires it.',
+      'Prefer the smallest coherent diff over full-site reinvention.'
+    ],
+    providerInstructions: [
+      'Treat this as change-control, not a blank-page generation task.',
+      'Before regenerating, identify the minimal affected pages/sections.',
+      'Carry forward stable copy, nav, labels, section ids, and CTA names outside the requested change.',
+      'If a requested change conflicts with mustPreserve items, surface the conflict in approvalNotes instead of silently overriding.'
+    ],
+    context: {
+      sitePlan: sitePlan ? 'site/sitemap.json' : null,
+      designSystem: designSystem ? 'site/design-system.json' : null,
+      latestBuild: build ? { id: build.id, root: build.root || `builds/${build.directory || build.id}`, createdAt: build.createdAt } : null,
+      critiqueLearning: critiqueLearning ? 'site/critique-learning.json' : null
+    },
+    approval: { required: true, type: 'site.change.review' }
+  };
+
+  await writeJson(path.join(root, artifact), brief);
+  const md = `# Site Change Brief\n\nWorkspace: ${brief.workspaceName}\nRequested: ${brief.requestedAt}\n\n## Requested change\n\n${brief.requestedChange}\n\n## Must change\n\n${brief.mustChange.map((item) => `- ${item}`).join('\n')}\n\n## Must preserve\n\n${brief.mustPreserve.map((item) => `- ${item}`).join('\n')}\n\n## Regeneration risks\n\n${brief.regenRisks.map((item) => `- ${item}`).join('\n')}\n\n## Provider instructions\n\n${brief.providerInstructions.map((item) => `- ${item}`).join('\n')}\n`;
+  const mdArtifact = `site/change-briefs/${briefId}.md`;
+  await writeFile(path.join(root, mdArtifact), md, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.change.briefed', at: now(), artifact, request });
+  const approvalResult = await createApproval(root, {
+    id: id('appr'),
+    version: VERSION,
+    type: 'site.change.review',
+    status: 'pending',
+    requestedAt: now(),
+    requestedBy: 'contextula-site-change',
+    artifact,
+    reason: 'Regeneration change briefs require review so providers know what must change and what must stay stable.'
+  });
+  return { brief, artifacts: [artifact, mdArtifact], approval: approvalResult.approval };
 }
 
 export function sitePrompt(packet) {
@@ -221,6 +307,7 @@ Rules:
 
 - Preserve the workspace classification and primary goal unless the packet contains strong contradictory evidence.
 - Use critiqueLearning/latestCritique as reinforcement: avoid repeating findings and preserve proven strengths.
+- If changeControl is present, obey it as the regeneration contract: implement mustChange, preserve mustPreserve, and avoid unrelated copy/nav/CTA drift.
 - Keep pages internally coherent: shared nav, consistent design language, stable route paths, stable section ids.
 - Do not add external scripts, remote assets, tracking pixels, or real form submissions.
 - Treat output as a review package, not a deployment. Customer-facing use still requires approval.
@@ -489,6 +576,19 @@ async function latestBuild(root) {
   }
   builds.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
   return builds[0] || null;
+}
+
+async function readLatestChangeBrief(root) {
+  const dir = path.join(root, 'site', 'change-briefs');
+  const entries = (await readdir(dir, { withFileTypes: true }).catch(() => []))
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.json'));
+  const briefs = [];
+  for (const entry of entries) {
+    const brief = await readJson(path.join(dir, entry.name), null).catch(() => null);
+    if (brief) briefs.push({ ...brief, artifact: `site/change-briefs/${entry.name}` });
+  }
+  briefs.sort((a, b) => String(b.requestedAt || '').localeCompare(String(a.requestedAt || '')));
+  return briefs[0] || null;
 }
 
 async function routeFileFacts(buildRoot, route) {

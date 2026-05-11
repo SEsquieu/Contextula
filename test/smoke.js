@@ -73,8 +73,18 @@ try {
   if (!brief.includes('Modernization Brief')) throw new Error(`Brief generation failed: ${brief}`);
   const draft = await run(['draft', 'outreach', workspaceId, '--home', home]);
   if (!draft.includes('approval:')) throw new Error(`Draft approval was not created: ${draft}`);
+  const contentPacket = await run(['content', 'packet', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post']);
+  if (!contentPacket.includes('contextula.content.packet')) throw new Error(`Content packet failed: ${contentPacket}`);
+  const contentPrompt = await run(['content', 'prompt', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post']);
+  if (!contentPrompt.includes('Contextula Content Drafting Task')) throw new Error(`Content prompt failed: ${contentPrompt}`);
   const contentDraft = await run(['content', 'draft', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post']);
   if (!contentDraft.includes('content draft:') || !contentDraft.includes('approval:')) throw new Error(`Content draft failed: ${contentDraft}`);
+  const contentArtifact = contentDraft.match(/content draft: (content\/drafts\/[^\s]+)/)?.[1];
+  if (!contentArtifact) throw new Error(`Could not parse content artifact: ${contentDraft}`);
+  const contentCritique = await run(['content', 'critique', workspaceId, '--home', home, '--artifact', contentArtifact]);
+  if (!contentCritique.includes('content critique:') || !contentCritique.includes('verdict:')) throw new Error(`Content critique failed: ${contentCritique}`);
+  const providerContentDraft = await run(['content', 'draft', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post', '--provider', 'json', '--response', path.resolve('docs/fixtures/content-response-good.json')]);
+  if (!providerContentDraft.includes('provider run: content/provider-runs/crun_')) throw new Error(`Provider content draft failed: ${providerContentDraft}`);
   const contentList = await run(['content', 'list', workspaceId, '--home', home]);
   if (!contentList.includes('Why this project hub exists') || !contentList.includes('content/drafts/')) throw new Error(`Content list failed: ${contentList}`);
   const generatedTickets = await run(['tickets', 'generate', workspaceId, '--home', home]);

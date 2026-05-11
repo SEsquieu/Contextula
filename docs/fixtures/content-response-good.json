@@ -1,0 +1,13 @@
+{
+  "title": "Why this project hub exists",
+  "summary": "Grounded draft that explains the site as a project hub without inventing business claims.",
+  "bodyMarkdown": "Grinning Frog works better as a project hub than a generic landing page because the useful thing is the map: what is live, what is planned, and where a visitor should go next.\n\nThe active destination is the music node, while notes and lab-style experiments can grow around it over time. That structure lets the site stay weird, technical, and signal-themed without pretending every lane is already a polished product.\n\nThe goal is simple: preserve the CRT-green Grinning Frog identity, route people to the work that exists now, and leave enough room for future experiments to appear without rebuilding the whole site every time.",
+  "groundingNotes": [
+    "Workspace is classified as a personal/project hub.",
+    "Music node is the active destination.",
+    "Brand voice is retro, technical, playful, and signal/transmission themed."
+  ],
+  "approvalNotes": [
+    "Review before publishing to confirm wording matches the owner's intended voice."
+  ]
+}

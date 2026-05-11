@@ -22,9 +22,9 @@ import { publishSitePreview } from './lib/site-preview.js';
 import { materializeWorkspaceState, readTimeline } from './lib/state.js';
 import { generateTickets, listTickets } from './lib/tickets.js';
 import { validateHome, validateWorkspace } from './lib/validation.js';
-import { listDesignProviders, listResearchProviders, listSiteProviders } from './lib/providers.js';
+import { listContentProviders, listDesignProviders, listResearchProviders, listSiteProviders } from './lib/providers.js';
 import { addVisualReference, captureVisualSnapshot } from './lib/visual.js';
-import { draftContent, listContent } from './lib/content.js';
+import { buildContentPacket, contentPrompt, critiqueContent, draftContent, draftContentWithProvider, listContent } from './lib/content.js';
 
 async function intakeCustomer(home, flags) {
   if (!flags.name) throw new Error('Missing --name');
@@ -174,6 +174,13 @@ function printAgentProviders() {
   console.log('');
   console.log('Design providers');
   for (const provider of listDesignProviders()) {
+    console.log(`${provider.name}\t${provider.available ? 'available' : 'missing'}\t${provider.description}`);
+    if (provider.command) console.log(`  command: ${provider.command}`);
+    if (provider.env?.length && !provider.command) console.log(`  configure: ${provider.env.join(' or ')}`);
+  }
+  console.log('');
+  console.log('Content providers');
+  for (const provider of listContentProviders()) {
     console.log(`${provider.name}\t${provider.available ? 'available' : 'missing'}\t${provider.description}`);
     if (provider.command) console.log(`  command: ${provider.command}`);
     if (provider.env?.length && !provider.command) console.log(`  configure: ${provider.env.join(' or ')}`);
@@ -396,10 +403,32 @@ async function createOutreachDraft(home, workspaceId, flags) {
 }
 
 async function createContentDraft(home, workspaceId, flags) {
-  const result = await draftContent(home, workspaceId, { topic: flags.topic, type: flags.type || 'blog-post', title: flags.title });
+  const provider = flags.provider || 'static';
+  const result = provider === 'static'
+    ? await draftContent(home, workspaceId, { topic: flags.topic, type: flags.type || 'blog-post', title: flags.title })
+    : await draftContentWithProvider(home, workspaceId, { topic: flags.topic, type: flags.type || 'blog-post', title: flags.title, provider, response: flags.response, command: flags.command, variant: flags.variant || 'content-provider-v1' });
   console.log(`content draft: ${result.artifact}`);
   console.log(`metadata: ${result.metaArtifact}`);
+  if (result.providerRun) console.log(`provider run: ${result.providerRun}`);
   console.log(`approval: ${result.approval.id}`);
+}
+
+async function exportContentPacket(home, workspaceId, flags) {
+  const packet = await buildContentPacket(home, workspaceId, { topic: flags.topic, type: flags.type || 'blog-post', title: flags.title, variant: flags.variant || 'content-provider-v1' });
+  console.log(JSON.stringify(packet, null, 2));
+}
+
+async function exportContentPrompt(home, workspaceId, flags) {
+  const packet = await buildContentPacket(home, workspaceId, { topic: flags.topic, type: flags.type || 'blog-post', title: flags.title, variant: flags.variant || 'content-provider-v1' });
+  console.log(contentPrompt(packet));
+}
+
+async function createContentCritique(home, workspaceId, flags) {
+  const result = await critiqueContent(home, workspaceId, { artifact: flags.artifact });
+  console.log(`content critique: ${result.report}`);
+  console.log(`score: ${result.critique.score}`);
+  console.log(`verdict: ${result.critique.verdict}`);
+  console.log(`findings: ${result.critique.findings.length}`);
 }
 
 async function printContent(home, workspaceId) {
@@ -435,7 +464,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  content draft <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--home <path>]\n  content list <workspace-id-or-slug> [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  visual reference <workspace-id-or-slug> --image <path> [--note <text>] [--home <path>]\n  site packet <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site prompt <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site plan <workspace-id-or-slug> [--home <path>]\n  site build <workspace-id-or-slug> [--home <path>]\n  site change <workspace-id-or-slug> --request <text> [--change <text>] [--preserve <text>] [--home <path>]\n  site loop <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--request <text>] [--provider static|json|openclaw] [--response <path>] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  site generate <workspace-id-or-slug> [--variant site-provider-v1] [--provider json|openclaw] [--response <path>] [--home <path>]\n  site critique <workspace-id-or-slug> [--build latest|builds/sitebuild_...] [--viewport desktop|mobile] [--home <path>]\n  site preview <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--build latest|builds/sitebuild_...] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  content packet <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--home <path>]\n  content prompt <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--home <path>]\n  content draft <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  content critique <workspace-id-or-slug> --artifact <content/drafts/...md> [--home <path>]\n  content list <workspace-id-or-slug> [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  visual reference <workspace-id-or-slug> --image <path> [--note <text>] [--home <path>]\n  site packet <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site prompt <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site plan <workspace-id-or-slug> [--home <path>]\n  site build <workspace-id-or-slug> [--home <path>]\n  site change <workspace-id-or-slug> --request <text> [--change <text>] [--preserve <text>] [--home <path>]\n  site loop <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--request <text>] [--provider static|json|openclaw] [--response <path>] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  site generate <workspace-id-or-slug> [--variant site-provider-v1] [--provider json|openclaw] [--response <path>] [--home <path>]\n  site critique <workspace-id-or-slug> [--build latest|builds/sitebuild_...] [--viewport desktop|mobile] [--home <path>]\n  site preview <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--build latest|builds/sitebuild_...] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
 }
 
 async function main() {
@@ -483,7 +512,10 @@ async function main() {
   if (cmd === 'claims') return printClaims(home, subcmd, flags);
   if (cmd === 'claim' && subcmd === 'add') return createClaim(home, maybeId, flags);
   if (cmd === 'draft' && subcmd === 'outreach') return createOutreachDraft(home, maybeId, flags);
+  if (cmd === 'content' && subcmd === 'packet') return exportContentPacket(home, maybeId, flags);
+  if (cmd === 'content' && subcmd === 'prompt') return exportContentPrompt(home, maybeId, flags);
   if (cmd === 'content' && subcmd === 'draft') return createContentDraft(home, maybeId, flags);
+  if (cmd === 'content' && subcmd === 'critique') return createContentCritique(home, maybeId, flags);
   if (cmd === 'content' && subcmd === 'list') return printContent(home, maybeId);
   if (cmd === 'tickets' && subcmd === 'generate') return createTickets(home, maybeId);
   if (cmd === 'tickets' && subcmd === 'list') return printTickets(home, maybeId);

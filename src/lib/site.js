@@ -4,6 +4,7 @@ import { appendJsonl, id, now, readJson, readJsonl, VERSION, writeJson } from '.
 import { resolveWorkspace } from './storage.js';
 import { classifyWorkspace } from './classification.js';
 import { createApproval } from './approvals.js';
+import { addClaim } from './claims.js';
 
 function topClaims(claims, limit = 16) {
   return claims
@@ -308,6 +309,44 @@ function critiquePlanAndBuild({ plan, build, linkCheck, routeFiles }) {
   return { score, verdict, strengths, findings };
 }
 
+async function recordCritiqueLearning(root, critique) {
+  const claims = [];
+  if (critique.findings.length === 0) {
+    claims.push(await addClaim(root, {
+      text: `Latest site build critique passed with verdict ${critique.verdict} and no findings for ${critique.classification?.label || 'current classification'}.`,
+      confidence: 0.82,
+      source: 'site-critique',
+      metadata: { artifact: `${critique.build}/contextula/site-critique.md`, build: critique.build, verdict: critique.verdict, score: critique.score }
+    }));
+  } else {
+    for (const finding of critique.findings) {
+      claims.push(await addClaim(root, {
+        text: `Site build critique found ${finding.severity} ${finding.area} issue: ${finding.message} Recommendation: ${finding.recommendation}`,
+        confidence: finding.severity === 'high' ? 0.9 : finding.severity === 'medium' ? 0.78 : 0.66,
+        source: 'site-critique',
+        metadata: { artifact: `${critique.build}/contextula/site-critique.md`, build: critique.build, verdict: critique.verdict, score: critique.score, severity: finding.severity, area: finding.area }
+      }));
+    }
+  }
+
+  const learned = {
+    version: 1,
+    updatedAt: now(),
+    source: `${critique.build}/contextula/site-critique.json`,
+    build: critique.build,
+    verdict: critique.verdict,
+    score: critique.score,
+    claimIds: claims.map((claim) => claim.id),
+    duplicateClaims: claims.filter((claim) => claim.duplicate).length,
+    signals: critique.findings.length
+      ? critique.findings.map((finding) => ({ type: 'issue', severity: finding.severity, area: finding.area, message: finding.message, recommendation: finding.recommendation }))
+      : [{ type: 'positive', area: 'site-build-quality', message: 'Build passed procedural critique without findings.' }]
+  };
+  await writeJson(path.join(root, 'site', 'critique-learning.json'), learned);
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.critique.learned', at: now(), build: critique.build, verdict: critique.verdict, score: critique.score, claims: claims.length, duplicateClaims: learned.duplicateClaims });
+  return learned;
+}
+
 export async function critiqueStaticSite(home, workspaceId, { build: requestedBuild = 'latest' } = {}) {
   const { record, root } = await resolveWorkspace(home, workspaceId);
   const plan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
@@ -346,5 +385,6 @@ export async function critiqueStaticSite(home, workspaceId, { build: requestedBu
   const md = `# Site Critique\n\nWorkspace: ${critique.workspaceName}\nBuild: ${critique.build}\nCreated: ${critique.createdAt}\nVerdict: ${critique.verdict}\nScore: ${critique.score}\n\n## Strengths\n\n${critique.strengths.map((item) => `- ${item}`).join('\n') || '- None recorded.'}\n\n## Findings\n\n${critique.findings.map((finding) => `- [${finding.severity}] ${finding.area}: ${finding.message}\n  - Recommendation: ${finding.recommendation}`).join('\n') || '- No blocking findings.'}\n\n## Route files\n\n${critique.routeFiles.map((route) => `- ${route.path} -> ${route.file}: ${route.exists ? 'ok' : 'missing'}`).join('\n')}\n`;
   await writeFile(path.join(root, relativeReport), md, 'utf8');
   await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.critique.generated', at: now(), artifact: relativeReport, build: critique.build, verdict: critique.verdict, score: critique.score, findings: critique.findings.length });
-  return { critique, artifact: relativeArtifact, report: relativeReport };
+  const learned = await recordCritiqueLearning(root, critique);
+  return { critique, learned, artifact: relativeArtifact, report: relativeReport, learning: 'site/critique-learning.json' };
 }

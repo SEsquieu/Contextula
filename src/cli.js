@@ -293,6 +293,8 @@ async function createSiteCritique(home, workspaceId, flags) {
   console.log(`score: ${result.critique.score}`);
   console.log(`verdict: ${result.critique.verdict}`);
   console.log(`findings: ${result.critique.findings.length}`);
+  console.log(`learning: ${result.learning}`);
+  console.log(`learned claims: ${result.learned.claimIds.length - result.learned.duplicateClaims} new, ${result.learned.duplicateClaims} duplicate`);
 }
 
 async function createDesignCritique(home, workspaceId, flags) {

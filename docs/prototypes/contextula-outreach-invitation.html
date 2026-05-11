@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contextula — Private Operator Brief</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --black:#050505;
+      --ink:#0d0d0d;
+      --charcoal:#151515;
+      --ash:#2a2a2a;
+      --bone:#f5f1ea;
+      --paper:#d9d0c1;
+      --muted:#a9a09a;
+      --blood:#e21d2d;
+      --blood-dark:#6f0710;
+      --blood-soft:rgba(226,29,45,.22);
+      --line:rgba(245,241,234,.16);
+      --gold:#b79b62;
+      --shadow:0 34px 120px rgba(0,0,0,.66);
+      --serif: Georgia, 'Times New Roman', ui-serif, serif;
+      --sans: Inter, ui-sans-serif, system-ui, Segoe UI, Arial, sans-serif;
+    }
+
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0;
+      min-height:100vh;
+      color:var(--bone);
+      background:
+        radial-gradient(circle at 8% 6%, rgba(226,29,45,.42) 0 44px, rgba(226,29,45,.17) 45px 86px, transparent 87px),
+        radial-gradient(circle at 84% 14%, rgba(226,29,45,.16), transparent 26%),
+        linear-gradient(135deg, #030303 0%, #0b0b0b 42%, #15080a 100%);
+      font-family:var(--sans);
+      overflow-x:hidden;
+    }
+
+    body::before {
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(90deg, rgba(245,241,234,.035) 1px, transparent 1px),
+        linear-gradient(rgba(245,241,234,.025) 1px, transparent 1px),
+        radial-gradient(circle at 10% 80%, rgba(226,29,45,.08), transparent 22%);
+      background-size:64px 64px,64px 64px,100% 100%;
+      mask-image:linear-gradient(to bottom, black 0%, rgba(0,0,0,.7) 58%, transparent 100%);
+    }
+
+    body::after {
+      content:"";
+      position:fixed;
+      left:0;
+      right:0;
+      bottom:0;
+      height:28vh;
+      pointer-events:none;
+      background:
+        linear-gradient(to top, rgba(0,0,0,.92), transparent),
+        repeating-linear-gradient(90deg, transparent 0 68px, rgba(226,29,45,.05) 69px 70px);
+    }
+
+    a { color:inherit; }
+    .page { position:relative; z-index:1; width:min(1180px, calc(100vw - 32px)); margin:0 auto; padding:30px 0 76px; }
+
+    .crest-bar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      padding:12px 0 28px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.18em;
+      font-size:11px;
+    }
+
+    .seal-lockup { display:flex; align-items:center; gap:14px; }
+    .seal {
+      width:54px;
+      height:54px;
+      display:grid;
+      place-items:center;
+      position:relative;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 35% 30%, #ff4c5b, var(--blood) 44%, var(--blood-dark) 100%);
+      box-shadow:0 0 34px rgba(226,29,45,.34), inset 0 2px 0 rgba(255,255,255,.18);
+      color:#070707;
+      font-family:var(--serif);
+      font-size:46px;
+      font-weight:900;
+      line-height:1;
+    }
+    .seal::before,
+    .seal::after {
+      content:"";
+      position:absolute;
+      top:13px;
+      width:0;
+      height:0;
+      border-left:6px solid transparent;
+      border-right:6px solid transparent;
+      border-top:19px solid #070707;
+    }
+    .seal::before { left:21px; transform:rotate(7deg); }
+    .seal::after { right:12px; transform:rotate(-9deg); }
+    .seal-small { width:24px; height:24px; font-size:21px; border-radius:7px; box-shadow:none; }
+    .seal-small::before,.seal-small::after{ display:none; }
+
+    .wordmark {
+      font-family:var(--serif);
+      color:var(--bone);
+      font-size:26px;
+      letter-spacing:-.06em;
+      text-transform:none;
+    }
+
+    .hero {
+      position:relative;
+      min-height:680px;
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:
+        linear-gradient(110deg, rgba(8,8,8,.98), rgba(14,14,14,.92) 52%, rgba(50,6,10,.68)),
+        radial-gradient(circle at 75% 34%, rgba(226,29,45,.28), transparent 35%);
+      box-shadow:var(--shadow), inset 0 1px 0 rgba(245,241,234,.06);
+    }
+
+    .hero::before {
+      content:"";
+      position:absolute;
+      inset:24px;
+      border:1px solid rgba(183,155,98,.22);
+      pointer-events:none;
+    }
+    .hero::after {
+      content:"";
+      position:absolute;
+      right:-8%;
+      bottom:-8%;
+      width:48%;
+      aspect-ratio:1;
+      border-radius:50%;
+      background:radial-gradient(circle, rgba(226,29,45,.33), rgba(226,29,45,.08) 48%, transparent 70%);
+      filter:blur(1px);
+    }
+
+    .hero-grid {
+      position:relative;
+      z-index:1;
+      display:grid;
+      grid-template-columns:1.03fr .97fr;
+      gap:40px;
+      padding:58px;
+      min-height:680px;
+    }
+
+    .invitation-label {
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      color:var(--gold);
+      text-transform:uppercase;
+      letter-spacing:.26em;
+      font-size:11px;
+      margin-bottom:28px;
+    }
+    .invitation-label::before { content:""; width:40px; height:1px; background:var(--gold); opacity:.7; }
+
+    h1 {
+      margin:0;
+      max-width:720px;
+      font-family:var(--serif);
+      font-size:clamp(54px, 8vw, 114px);
+      line-height:.88;
+      letter-spacing:-.065em;
+      color:var(--bone);
+      text-wrap:balance;
+    }
+    h1 em { color:var(--blood); font-style:normal; }
+
+    .lead {
+      max-width:640px;
+      margin:28px 0 0;
+      color:var(--paper);
+      font-size:20px;
+      line-height:1.68;
+    }
+
+    .cta-row { display:flex; flex-wrap:wrap; gap:12px; margin-top:34px; }
+    .button {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:50px;
+      padding:14px 18px;
+      border:1px solid var(--line);
+      text-decoration:none;
+      text-transform:uppercase;
+      letter-spacing:.13em;
+      font-size:12px;
+      font-weight:900;
+    }
+    .button.primary {
+      background:linear-gradient(135deg, var(--blood), #8e0d17);
+      color:white;
+      border-color:rgba(226,29,45,.68);
+      box-shadow:0 0 34px rgba(226,29,45,.28);
+    }
+    .button.secondary { color:var(--bone); background:rgba(245,241,234,.04); }
+
+    .operator-card {
+      align-self:end;
+      justify-self:stretch;
+      border:1px solid rgba(245,241,234,.17);
+      background:
+        linear-gradient(180deg, rgba(15,15,15,.92), rgba(5,5,5,.96)),
+        radial-gradient(circle at 20% 0%, rgba(226,29,45,.22), transparent 38%);
+      box-shadow:0 26px 80px rgba(0,0,0,.54);
+      padding:22px;
+    }
+    .operator-top { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:22px; }
+    .operator-title { font-family:var(--serif); font-size:26px; letter-spacing:-.04em; }
+    .status-orb {
+      width:72px;
+      height:72px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      border:1px solid rgba(226,29,45,.7);
+      color:var(--blood);
+      font-weight:900;
+      box-shadow:inset 0 0 20px rgba(226,29,45,.13), 0 0 20px rgba(226,29,45,.12);
+    }
+    .timeline { display:grid; gap:10px; }
+    .event {
+      display:grid;
+      grid-template-columns:14px 1fr auto;
+      gap:10px;
+      align-items:start;
+      color:var(--muted);
+      font-size:13px;
+      border-top:1px solid rgba(245,241,234,.08);
+      padding-top:11px;
+    }
+    .dot { width:8px; height:8px; margin-top:5px; border-radius:50%; background:var(--blood); box-shadow:0 0 14px rgba(226,29,45,.5); }
+    .event strong { color:var(--bone); display:block; margin-bottom:2px; }
+    .event time { color:#756e69; font-size:11px; text-transform:uppercase; letter-spacing:.12em; }
+
+    .principles {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      border-left:1px solid var(--line);
+      border-right:1px solid var(--line);
+      border-bottom:1px solid var(--line);
+      background:rgba(8,8,8,.7);
+    }
+    .principle {
+      min-height:130px;
+      padding:24px;
+      border-right:1px solid var(--line);
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .principle:last-child { border-right:0; }
+    .icon { color:var(--blood); font-size:26px; line-height:1; }
+    .principle strong { text-transform:uppercase; letter-spacing:.18em; font-size:12px; }
+    .principle span { color:var(--muted); font-size:13px; line-height:1.5; }
+
+    section.block { margin-top:26px; }
+    .section-title {
+      display:grid;
+      grid-template-columns:auto 1fr;
+      gap:16px;
+      align-items:center;
+      margin:0 0 14px;
+      color:var(--gold);
+      text-transform:uppercase;
+      letter-spacing:.23em;
+      font-size:12px;
+    }
+    .section-title::after { content:""; height:1px; background:linear-gradient(90deg, rgba(183,155,98,.45), transparent); }
+
+    .cards { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+    .card {
+      border:1px solid var(--line);
+      background:linear-gradient(160deg, rgba(19,19,19,.93), rgba(7,7,7,.94));
+      box-shadow:0 18px 70px rgba(0,0,0,.32), inset 0 1px 0 rgba(245,241,234,.04);
+      padding:24px;
+      min-height:240px;
+    }
+    .card h2 {
+      margin:0 0 14px;
+      font-family:var(--serif);
+      color:var(--bone);
+      font-size:30px;
+      letter-spacing:-.045em;
+      line-height:1;
+    }
+    .card p, .card li { color:var(--muted); line-height:1.58; }
+    .card ul, .card ol { margin:0; padding-left:18px; }
+    .card li { margin:9px 0; }
+    .redline { height:2px; width:58px; background:var(--blood); margin:0 0 18px; box-shadow:0 0 20px rgba(226,29,45,.44); }
+
+    .preview-stage {
+      display:grid;
+      grid-template-columns:.86fr 1.14fr;
+      gap:18px;
+      align-items:stretch;
+    }
+    .preview-frame {
+      position:relative;
+      min-height:430px;
+      overflow:hidden;
+      border:1px solid rgba(245,241,234,.18);
+      background:
+        linear-gradient(180deg, rgba(245,241,234,.07), rgba(245,241,234,.02)),
+        linear-gradient(135deg,#0a0a0a,#171717);
+      padding:14px;
+    }
+    .browser-bar { height:34px; display:flex; align-items:center; gap:7px; border-bottom:1px solid var(--line); color:#6d6662; font-size:11px; text-transform:uppercase; letter-spacing:.12em; }
+    .lamp { width:8px; height:8px; border-radius:50%; background:var(--blood); box-shadow:0 0 14px rgba(226,29,45,.6); }
+    .mini-site {
+      margin-top:18px;
+      min-height:340px;
+      background:linear-gradient(180deg,#eefcff,#fff);
+      color:#10212b;
+      border-radius:18px;
+      padding:26px;
+      font-family:var(--sans);
+    }
+    .mini-site small { color:#06b6d4; font-weight:900; text-transform:uppercase; letter-spacing:.16em; }
+    .mini-site h3 { font-size:42px; letter-spacing:-.06em; line-height:.9; margin:14px 0; }
+    .mini-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:24px; }
+    .mini-card { min-height:76px; border:1px solid #d6e8ee; border-radius:14px; background:white; padding:12px; color:#5b6f7a; font-size:12px; }
+
+    .closing {
+      position:relative;
+      overflow:hidden;
+      border:1px solid rgba(226,29,45,.36);
+      background:
+        linear-gradient(135deg, rgba(226,29,45,.18), rgba(10,10,10,.94) 52%),
+        radial-gradient(circle at 85% 30%, rgba(226,29,45,.26), transparent 32%);
+      padding:34px;
+      box-shadow:var(--shadow);
+    }
+    .closing h2 { font-family:var(--serif); font-size:clamp(38px,5vw,72px); line-height:.95; letter-spacing:-.06em; margin:0 0 14px; color:var(--bone); }
+    .closing p { color:var(--paper); line-height:1.65; max-width:760px; font-size:18px; }
+
+    footer {
+      display:flex;
+      justify-content:space-between;
+      gap:20px;
+      border-top:1px solid var(--line);
+      margin-top:26px;
+      padding-top:20px;
+      color:#746d68;
+      text-transform:uppercase;
+      letter-spacing:.16em;
+      font-size:11px;
+    }
+
+    @media (max-width: 900px) {
+      .hero-grid, .preview-stage { grid-template-columns:1fr; padding:32px; }
+      .hero { min-height:auto; }
+      .principles, .cards { grid-template-columns:1fr 1fr; }
+    }
+    @media (max-width: 620px) {
+      .crest-bar, footer { flex-direction:column; align-items:flex-start; }
+      .principles, .cards { grid-template-columns:1fr; }
+      h1 { font-size:56px; }
+      .wordmark { font-size:22px; }
+      .hero-grid { padding:24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="crest-bar">
+      <div class="seal-lockup"><div class="seal seal-small">C</div><span>contextula</span></div>
+      <div>Private operator brief · prepared for Mock Pressure Washing</div>
+    </div>
+
+    <header class="hero">
+      <div class="hero-grid">
+        <div>
+          <div class="seal-lockup" style="margin-bottom:34px">
+            <div class="seal">C</div>
+            <div>
+              <div class="wordmark" style="font-size:clamp(48px,7vw,92px)">contextula</div>
+              <div style="color:var(--blood);text-transform:uppercase;letter-spacing:.42em;font-size:12px;font-weight:900;margin-top:8px">Persistent context. Continuous growth.</div>
+            </div>
+          </div>
+          <div class="invitation-label">Private invitation</div>
+          <h1>I made a private first preview for <em>your business.</em></h1>
+          <p class="lead">Contextula is your persistent digital operator: a rep that learns your business, builds public-facing improvements, remembers your preferences, and keeps every launch behind approval.</p>
+          <div class="cta-row">
+            <a class="button primary" href="#preview">Open private preview</a>
+            <a class="button secondary" href="#questions">Review owner questions</a>
+          </div>
+        </div>
+
+        <aside class="operator-card" aria-label="Operator status">
+          <div class="operator-top">
+            <div>
+              <div class="invitation-label" style="margin:0 0 10px">Latest operation</div>
+              <div class="operator-title">Public presence refresh</div>
+            </div>
+            <div class="status-orb">96</div>
+          </div>
+          <div class="timeline">
+            <div class="event"><span class="dot"></span><div><strong>Preview generated</strong>Local first pass prepared from limited public context.</div><time>now</time></div>
+            <div class="event"><span class="dot"></span><div><strong>Approval gates opened</strong>Copy, structure, and preview require owner review.</div><time>safe</time></div>
+            <div class="event"><span class="dot"></span><div><strong>Context memory started</strong>Preferences and constraints will shape every next iteration.</div><time>live</time></div>
+            <div class="event"><span class="dot"></span><div><strong>External writes locked</strong>Nothing publishes, posts, or contacts customers without approval.</div><time>trusted</time></div>
+          </div>
+        </aside>
+      </div>
+    </header>
+
+    <section class="principles" aria-label="Contextula principles">
+      <div class="principle"><div class="icon">◌</div><strong>Conversational</strong><span>Tell your rep what changed. The context stays alive.</span></div>
+      <div class="principle"><div class="icon">↻</div><strong>Iterative</strong><span>Preview, revise, approve, improve. No blank-slate thrash.</span></div>
+      <div class="principle"><div class="icon">◇</div><strong>Trusted</strong><span>Every external action is approval-gated and auditable.</span></div>
+      <div class="principle"><div class="icon">▴</div><strong>Continuous</strong><span>The business presence compounds instead of decaying.</span></div>
+    </section>
+
+    <section class="block">
+      <div class="section-title">What I noticed</div>
+      <div class="cards">
+        <article class="card"><div class="redline"></div><h2>The first gap</h2><p>Your public presence should make the next step obvious: what you do, where you serve, why someone should trust you, and how to request a quote.</p></article>
+        <article class="card"><div class="redline"></div><h2>The safe first move</h2><p>I made a private preview that avoids fake testimonials, fake prices, and fake business claims. It is meant to start the conversation, not pretend to be finished.</p></article>
+        <article class="card"><div class="redline"></div><h2>The leverage</h2><p>Once the basics are approved, your operator can add photos, promos, lead capture, social posts, follow-ups, and future site edits from the same living context.</p></article>
+      </div>
+    </section>
+
+    <section id="preview" class="block">
+      <div class="section-title">Private preview</div>
+      <div class="preview-stage">
+        <article class="card">
+          <div class="redline"></div>
+          <h2>Not a pitch deck. A first move.</h2>
+          <p>This is the moment that should land with a busy owner: Contextula already did the first hour of thinking, produced a clean preview, and showed the exact questions needed before anything becomes real.</p>
+          <p><a class="button primary" href="#">Open generated preview</a></p>
+        </article>
+        <div class="preview-frame" aria-label="Preview mock">
+          <div class="browser-bar"><span class="lamp"></span><span class="lamp"></span><span class="lamp"></span><span>private-preview.contextula</span></div>
+          <div class="mini-site">
+            <small>Local exterior cleaning</small>
+            <h3>Make the outside feel new again.</h3>
+            <p>Friendly, reliable pressure washing for homes, driveways, decks, storefronts, and seasonal cleanups.</p>
+            <div class="mini-grid"><div class="mini-card">House washing</div><div class="mini-card">Concrete refresh</div><div class="mini-card">Seasonal cleanup</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="questions" class="block">
+      <div class="section-title">Before production</div>
+      <div class="cards">
+        <article class="card"><div class="redline"></div><h2>Owner questions</h2><ol><li>What phone/email should customers use?</li><li>Which towns or service radius should be public?</li><li>Do you have photos, reviews, prices, or seasonal offers?</li><li>What should the site never promise without approval?</li></ol></article>
+        <article class="card"><div class="redline"></div><h2>Approval gates</h2><ul><li>Approve draft copy before publication.</li><li>Confirm the site structure and public journey.</li><li>Review the private preview before production.</li><li>Approve any external write or customer contact.</li></ul></article>
+        <article class="card"><div class="redline"></div><h2>Your rep can</h2><ul><li>Turn the preview into a real site.</li><li>Record feedback and preserve taste.</li><li>Draft campaigns and social posts.</li><li>Set up lead capture and follow-ups.</li></ul></article>
+      </div>
+    </section>
+
+    <section class="block closing">
+      <h2>Your public journey should not depend on remembering every moving part.</h2>
+      <p>Contextula keeps the operational memory: what your business is, what you approved, what should never drift, what needs improvement, and what action is safest next. You stay in control. Your operator keeps the work moving.</p>
+      <div class="cta-row"><a class="button primary" href="#preview">Review the private preview</a><a class="button secondary" href="#questions">See what I need from you</a></div>
+    </section>
+
+    <footer>
+      <div>Contextula · persistent digital operator</div>
+      <div>Conversational · Iterative · Trusted · Continuous</div>
+    </footer>
+  </div>
+</body>
+</html>

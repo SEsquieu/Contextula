@@ -11,6 +11,7 @@ const knownArtifacts = [
   'reports/modernization-brief.md',
   'reports/agent-research-brief.md',
   'reports/dashboard.html',
+  'reports/customer-review-package.html',
   'research/agent-packet.json',
   'research/extracted/homepage.md',
   'plans/initial-modernization-map.md',

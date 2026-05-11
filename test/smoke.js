@@ -32,6 +32,8 @@ try {
   await run(['init', '--home', home]);
   const demo = await run(['demo', 'site', '--home', home, '--name', 'Demo Plumbing', '--website', 'example.org', '--max-pages', '1']);
   if (!demo.includes('No external messages sent')) throw new Error(`Demo flow failed: ${demo}`);
+  const journeyDemo = await run(['demo', 'journey', '--home', home, '--name', 'Demo Pressure Washing', '--website', 'example.net', '--feedback', 'Friendly local, reliable, no corporate jargon.', '--topic', 'Why choose this business', '--url', 'https://preview.example.invalid']);
+  if (!journeyDemo.includes('journey demo workspace:') || !journeyDemo.includes('review package: reports/customer-review-package.html')) throw new Error(`Journey demo flow failed: ${journeyDemo}`);
   const created = await run(['intake', 'customer', '--home', home, '--name', 'Example Plumbing', '--website', 'https://example.com']);
   const workspaceId = created.match(/cus_[^\s]+/)?.[0];
   if (!workspaceId) throw new Error(`Could not parse workspace id from: ${created}`);
@@ -145,6 +147,8 @@ try {
   if (!sitePatch.includes('site patch:') || !sitePatch.includes('checks: ok') || !sitePatch.includes('approval:')) throw new Error(`Site patch failed: ${sitePatch}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
+  const reviewPackage = await run(['review', 'package', workspaceId, '--home', home, '--url', 'https://preview.example.invalid', '--note', 'Smoke-test customer review package.']);
+  if (!reviewPackage.includes('review package: reports/customer-review-package.html') || !reviewPackage.includes('pending approvals:')) throw new Error(`Review package failed: ${reviewPackage}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);
   if (!designCritique.includes('design critique:')) throw new Error(`Design critique failed: ${designCritique}`);
   const designRevision = await run(['design', 'revise', workspaceId, '--home', home]);
@@ -164,7 +168,7 @@ try {
   if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);
   const artifacts = await run(['artifacts', workspaceId, '--home', home]);
-  if (!artifacts.includes('reports/dashboard.html') || !artifacts.includes('content\\drafts') && !artifacts.includes('content/drafts')) throw new Error(`Artifact summary failed: ${artifacts}`);
+  if (!artifacts.includes('reports/dashboard.html') || !artifacts.includes('reports/customer-review-package.html') || !artifacts.includes('content\\drafts') && !artifacts.includes('content/drafts')) throw new Error(`Artifact summary failed: ${artifacts}`);
   const approvalsAfter = await run(['approvals', workspaceId, '--home', home]);
   if (!approvalsAfter.includes('approved')) throw new Error('Approval did not update to approved');
 

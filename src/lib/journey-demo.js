@@ -1,0 +1,39 @@
+import { createCustomer, readProfile, writeProfile } from './workspace.js';
+import { researchHomepage, researchWebsite } from './research.js';
+import { buildPlan } from './planning.js';
+import { runResearchAgent } from './agents/research-agent.js';
+import { generateBrief } from './reports.js';
+import { generateDashboard } from './dashboard.js';
+import { draftContent, critiqueContent } from './content.js';
+import { recordFeedback } from './feedback.js';
+import { generateSitePlan, buildStaticSite, critiqueStaticSite } from './site.js';
+import { generateCustomerReviewPackage } from './customer-review.js';
+import { setWorkspaceStatus } from './lifecycle.js';
+
+export async function runJourneyDemo(home, { name, website, feedback, contentTopic, previewUrl } = {}) {
+  if (!name) throw new Error('Missing --name');
+  const { workspaceId, root } = await createCustomer(home, { name, website, source: 'journey-demo', allowDuplicate: true });
+  await setWorkspaceStatus(home, workspaceId, 'researching');
+  const profile = await readProfile(root);
+  const researchResult = website ? await researchWebsite(root, profile, { maxPages: 2 }) : await researchHomepage(root, profile);
+  profile.currentDigitalPresence = {
+    ...profile.currentDigitalPresence,
+    websiteSnapshotCaptured: Boolean(researchResult.pages?.length || researchResult.page),
+    pagesCaptured: researchResult.pages?.length || (researchResult.page ? 1 : 0),
+    lastResearchAt: new Date().toISOString()
+  };
+  await writeProfile(root, profile);
+  await runResearchAgent(home, workspaceId, { provider: 'static' });
+  await buildPlan(root, profile, researchResult);
+  await generateBrief(home, workspaceId);
+  if (feedback) await recordFeedback(home, workspaceId, { area: 'brand', text: feedback });
+  const content = await draftContent(home, workspaceId, { topic: contentTopic || 'What this business should say publicly', type: 'brand-note' });
+  await critiqueContent(home, workspaceId, { artifact: content.artifact });
+  await generateSitePlan(home, workspaceId);
+  const build = await buildStaticSite(home, workspaceId);
+  await critiqueStaticSite(home, workspaceId, { build: build.build.root, viewport: 'desktop' });
+  await generateDashboard(home, workspaceId);
+  const review = await generateCustomerReviewPackage(home, workspaceId, { previewUrl: previewUrl || null, note: 'Demo package: this is a mock customer journey showing Contextula\'s onboarding/review loop.' });
+  await setWorkspaceStatus(home, workspaceId, 'briefed');
+  return { workspaceId, root, reviewPackage: review.artifact, pendingApprovals: review.pendingApprovals };
+}

@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env node
+#!/usr/bin/env node
 import { defaultHome, parseArgs, VERSION } from './lib/util.js';
 import { ensureHome, resolveWorkspace } from './lib/storage.js';
 import { createCustomer, listWorkspaces, readProfile, writeProfile } from './lib/workspace.js';
@@ -13,11 +13,13 @@ import { critiqueDesign, generateDesignBrief, generateHomepageHtml, generateHome
 import { buildDesignPacket, designPrompt, runDesignHtmlProvider } from './lib/design-provider.js';
 import { draftOutreach } from './lib/drafts.js';
 import { recordFeedback } from './lib/feedback.js';
+import { runJourneyDemo } from './lib/journey-demo.js';
 import { getWorkspaceStatus, setWorkspaceStatus, WORKSPACE_STATUSES } from './lib/lifecycle.js';
 import { writePortfolioReport } from './lib/portfolio.js';
 import { materializePreferences } from './lib/preferences.js';
 import { generateBrief, generateReport } from './lib/reports.js';
 import { buildReview } from './lib/review.js';
+import { generateCustomerReviewPackage } from './lib/customer-review.js';
 import { buildSitePacket, buildStaticSite, critiqueStaticSite, generateSiteChangeBrief, generateSitePlan, runSiteProvider, sitePrompt } from './lib/site.js';
 import { publishSitePreview } from './lib/site-preview.js';
 import { publishExistingSitePatch } from './lib/site-patch.js';
@@ -49,6 +51,14 @@ async function intakeCustomer(home, flags) {
 
 async function printArtifactSummary(home, workspaceId) {
   console.log(formatArtifactSummary(await listArtifacts(home, workspaceId)));
+}
+
+async function runDemoJourney(home, flags) {
+  const result = await runJourneyDemo(home, { name: flags.name, website: flags.website, feedback: flags.feedback, contentTopic: flags.topic, previewUrl: flags.url });
+  console.log(`journey demo workspace: ${result.workspaceId}`);
+  console.log(`root: ${result.root}`);
+  console.log(`review package: ${result.reviewPackage}`);
+  console.log(`pending approvals: ${result.pendingApprovals}`);
 }
 
 async function runDemoSite(home, flags) {
@@ -466,6 +476,13 @@ async function printReview(home, workspaceId) {
   console.log(await buildReview(home, workspaceId));
 }
 
+async function createReviewPackage(home, workspaceId, flags) {
+  const result = await generateCustomerReviewPackage(home, workspaceId, { previewUrl: flags.url || null, note: flags.note || null });
+  console.log(`review package: ${result.artifact}`);
+  console.log(`pending approvals: ${result.pendingApprovals}`);
+  if (result.previewUrl) console.log(`url: ${result.previewUrl}`);
+}
+
 async function printValidation(home, workspaceId) {
   const results = workspaceId ? [await validateWorkspace(home, workspaceId)] : await validateHome(home);
   if (results.length === 0) {
@@ -486,7 +503,8 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  feedback record <workspace-id-or-slug> --area content|design|site|brand|voice --text <text> [--home <path>]\n  content packet <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--home <path>]\n  content prompt <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--home <path>]\n  content draft <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  content critique <workspace-id-or-slug> --artifact <content/drafts/...md> [--home <path>]\n  content list <workspace-id-or-slug> [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  visual reference <workspace-id-or-slug> --image <path> [--note <text>] [--home <path>]\n  site packet <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site prompt <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site plan <workspace-id-or-slug> [--home <path>]\n  site build <workspace-id-or-slug> [--home <path>]\n  site change <workspace-id-or-slug> --request <text> [--change <text>] [--preserve <text>] [--home <path>]\n  site loop <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--request <text>] [--provider static|json|openclaw] [--response <path>] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  site patch <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--request <text>] [--change <text>] [--preserve <text>] [--url <preview-url>] [--no-push] [--allow-empty] [--home <path>]\n  site generate <workspace-id-or-slug> [--variant site-provider-v1] [--provider json|openclaw] [--response <path>] [--home <path>]\n  site critique <workspace-id-or-slug> [--build latest|builds/sitebuild_...] [--viewport desktop|mobile] [--home <path>]\n  site preview <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--build latest|builds/sitebuild_...] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]
+  demo journey --name <name> [--website <url>] [--feedback <text>] [--topic <text>] [--url <preview-url>] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  feedback record <workspace-id-or-slug> --area content|design|site|brand|voice --text <text> [--home <path>]\n  content packet <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--home <path>]\n  content prompt <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--home <path>]\n  content draft <workspace-id-or-slug> --topic <text> [--type blog-post] [--title <text>] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  content critique <workspace-id-or-slug> --artifact <content/drafts/...md> [--home <path>]\n  content list <workspace-id-or-slug> [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  visual reference <workspace-id-or-slug> --image <path> [--note <text>] [--home <path>]\n  site packet <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site prompt <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site plan <workspace-id-or-slug> [--home <path>]\n  site build <workspace-id-or-slug> [--home <path>]\n  site change <workspace-id-or-slug> --request <text> [--change <text>] [--preserve <text>] [--home <path>]\n  site loop <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--request <text>] [--provider static|json|openclaw] [--response <path>] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  site patch <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--request <text>] [--change <text>] [--preserve <text>] [--url <preview-url>] [--no-push] [--allow-empty] [--home <path>]\n  site generate <workspace-id-or-slug> [--variant site-provider-v1] [--provider json|openclaw] [--response <path>] [--home <path>]\n  site critique <workspace-id-or-slug> [--build latest|builds/sitebuild_...] [--viewport desktop|mobile] [--home <path>]\n  site preview <workspace-id-or-slug> --repo <path> --branch <preview-branch> [--build latest|builds/sitebuild_...] [--viewport mobile] [--url <preview-url>] [--no-push] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  review package <workspace-id-or-slug> [--url <preview-url>] [--note <text>] [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
 }
 
 async function main() {
@@ -503,6 +521,7 @@ async function main() {
   }
   if (cmd === 'intake' && subcmd === 'customer') return intakeCustomer(home, flags);
   if (cmd === 'demo' && subcmd === 'site') return runDemoSite(home, flags);
+  if (cmd === 'demo' && subcmd === 'journey') return runDemoJourney(home, flags);
   if (cmd === 'agent' && subcmd === 'providers') return printAgentProviders();
   if (cmd === 'agent' && subcmd === 'packet') return exportAgentPacket(home, maybeId);
   if (cmd === 'agent' && subcmd === 'prompt') return exportAgentPrompt(home, maybeId);
@@ -561,6 +580,7 @@ async function main() {
   if (cmd === 'site' && subcmd === 'preview') return createSitePreview(home, maybeId, flags);
   if (cmd === 'design' && subcmd === 'critique') return createDesignCritique(home, maybeId, flags);
   if (cmd === 'design' && subcmd === 'revise') return createDesignRevision(home, maybeId, flags);
+  if (cmd === 'review' && subcmd === 'package') return createReviewPackage(home, maybeId, flags);
   if (cmd === 'review') return printReview(home, subcmd);
   if (cmd === 'validate') return printValidation(home, subcmd);
 

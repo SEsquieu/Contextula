@@ -140,6 +140,9 @@ try {
   if (!sitePreview.includes('site preview:') || !sitePreview.includes('pushed: no') || !sitePreview.includes('approval:')) throw new Error(`Site preview failed: ${sitePreview}`);
   const siteLoop = await run(['site', 'loop', workspaceId, '--home', home, '--repo', previewRepo, '--branch', 'preview', '--viewport', 'desktop', '--provider', 'static', '--request', 'Run the customer preview loop without changing production.', '--no-push']);
   if (!siteLoop.includes('site change:') || !siteLoop.includes('site critique:') || !siteLoop.includes('site preview:') || !siteLoop.includes('production approval:')) throw new Error(`Site loop failed: ${siteLoop}`);
+  await writeFile(path.join(previewRepo, 'README.md'), '# Preview Repo\n\nManual patch smoke marker.\n', 'utf8');
+  const sitePatch = await run(['site', 'patch', workspaceId, '--home', home, '--repo', previewRepo, '--branch', 'preview', '--request', 'Publish existing preview repo edits safely.', '--preserve', 'Keep generated routes stable.', '--no-push']);
+  if (!sitePatch.includes('site patch:') || !sitePatch.includes('checks: ok') || !sitePatch.includes('approval:')) throw new Error(`Site patch failed: ${sitePatch}`);
   const review = await run(['review', workspaceId, '--home', home]);
   if (!review.includes('Review queue')) throw new Error(`Review command failed: ${review}`);
   const designCritique = await run(['design', 'critique', workspaceId, '--home', home, '--feedback', 'Prefer brighter, more practical service-business styling.']);

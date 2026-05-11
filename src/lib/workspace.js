@@ -21,6 +21,7 @@ export async function initWorkspaceDirs(root) {
     'content/critiques',
     'content/provider-runs',
     'feedback',
+    'site/patches',
     'approvals',
     'reports',
     'assets',

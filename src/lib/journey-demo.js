@@ -6,11 +6,16 @@ import { generateBrief } from './reports.js';
 import { generateDashboard } from './dashboard.js';
 import { draftContent, critiqueContent } from './content.js';
 import { recordFeedback } from './feedback.js';
-import { generateSitePlan, buildStaticSite, critiqueStaticSite } from './site.js';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { generateSitePlan, buildStaticSite, critiqueStaticSite, runSiteProvider } from './site.js';
 import { generateCustomerReviewPackage } from './customer-review.js';
 import { setWorkspaceStatus } from './lifecycle.js';
 
-export async function runJourneyDemo(home, { name, website, feedback, contentTopic, previewUrl } = {}) {
+const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+const defaultJourneySiteResponse = path.resolve(moduleDir, '../../docs/fixtures/journey-demo-site-response-good.json');
+
+export async function runJourneyDemo(home, { name, website, feedback, contentTopic, previewUrl, siteProvider = 'json', siteResponse, siteCommand } = {}) {
   if (!name) throw new Error('Missing --name');
   const { workspaceId, root } = await createCustomer(home, { name, website, source: 'journey-demo', allowDuplicate: true });
   await setWorkspaceStatus(home, workspaceId, 'researching');
@@ -30,7 +35,9 @@ export async function runJourneyDemo(home, { name, website, feedback, contentTop
   const content = await draftContent(home, workspaceId, { topic: contentTopic || 'What this business should say publicly', type: 'brand-note' });
   await critiqueContent(home, workspaceId, { artifact: content.artifact });
   await generateSitePlan(home, workspaceId);
-  const build = await buildStaticSite(home, workspaceId);
+  const build = siteProvider === 'static'
+    ? await buildStaticSite(home, workspaceId)
+    : await runSiteProvider(home, workspaceId, { provider: siteProvider, response: siteResponse || (siteProvider === 'json' ? defaultJourneySiteResponse : undefined), command: siteCommand });
   await critiqueStaticSite(home, workspaceId, { build: build.build.root, viewport: 'desktop' });
   await generateDashboard(home, workspaceId);
   const review = await generateCustomerReviewPackage(home, workspaceId, { previewUrl: previewUrl || null, note: 'Demo package: this is a mock customer journey showing Contextula\'s onboarding/review loop.' });

@@ -34,6 +34,20 @@ async function latestJsonIn(root, dir) {
   return items[0] || null;
 }
 
+async function latestBuild(root) {
+  const buildsDir = path.join(root, 'builds');
+  const entries = (await readdir(buildsDir, { withFileTypes: true }).catch(() => []))
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith('sitebuild_'));
+  const builds = [];
+  for (const entry of entries) {
+    const artifact = `builds/${entry.name}/contextula/build.json`;
+    const data = await readJson(path.join(root, artifact), null).catch(() => null);
+    if (data?.root) builds.push({ artifact, data });
+  }
+  builds.sort((a, b) => String(b.data.createdAt || '').localeCompare(String(a.data.createdAt || '')));
+  return builds[0] || null;
+}
+
 export async function generateCustomerReviewPackage(home, workspaceId, { previewUrl = null, note = null } = {}) {
   const { record, root } = await resolveWorkspace(home, workspaceId);
   const profile = await readJson(path.join(root, 'profile.json'), {});
@@ -45,8 +59,10 @@ export async function generateCustomerReviewPackage(home, workspaceId, { preview
   const latestPatch = await latestJsonIn(root, 'site/patches');
   const latestPreview = await latestJsonIn(root, 'site/previews');
   const latestContent = await latestJsonIn(root, 'content/drafts');
+  const build = await latestBuild(root);
   const timeline = (await readJsonl(path.join(root, 'timeline.jsonl')).catch(() => [])).slice(-10).reverse();
-  const effectivePreviewUrl = previewUrl || latestPatch?.data?.previewUrl || latestPreview?.data?.previewUrl || null;
+  const localBuildUrl = build?.data?.root ? `../${build.data.root}/index.html` : null;
+  const effectivePreviewUrl = previewUrl || latestPatch?.data?.previewUrl || latestPreview?.data?.previewUrl || localBuildUrl;
 
   const html = `<!doctype html>
 <html lang="en">
@@ -91,7 +107,7 @@ export async function generateCustomerReviewPackage(home, workspaceId, { preview
     <section class="grid">
       <div class="card"><h2>What I think this is</h2><p>${escapeHtml(classification.label)}</p><p class="muted">${escapeHtml(classification.primaryGoal)}</p></div>
       <div class="card"><h2>Website / source</h2><p>${profile.website ? `<a href="${escapeHtml(profile.website)}">${escapeHtml(profile.website)}</a>` : 'No public website recorded yet.'}</p></div>
-      <div class="card"><h2>Latest preview work</h2><p>${latestPatch ? escapeHtml(latestPatch.artifact) : latestPreview ? escapeHtml(latestPreview.artifact) : 'No preview or patch manifest yet.'}</p></div>
+      <div class="card"><h2>Latest preview work</h2><p>${latestPatch ? escapeHtml(latestPatch.artifact) : latestPreview ? escapeHtml(latestPreview.artifact) : build ? escapeHtml(build.data.root) : 'No preview or patch manifest yet.'}</p></div>
       <div class="card"><h2>Latest content</h2><p>${latestContent?.data?.title ? escapeHtml(latestContent.data.title) : 'No content draft yet.'}</p></div>
     </section>
 

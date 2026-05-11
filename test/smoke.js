@@ -97,6 +97,10 @@ try {
   if (!visualReference.includes('visual reference:')) throw new Error(`Visual reference failed: ${visualReference}`);
   const sitePlan = await run(['site', 'plan', workspaceId, '--home', home]);
   if (!sitePlan.includes('site plan:') || !sitePlan.includes('approval:')) throw new Error(`Site plan failed: ${sitePlan}`);
+  const sitePacket = await run(['site', 'packet', workspaceId, '--home', home]);
+  if (!sitePacket.includes('contextula.site.packet')) throw new Error(`Site packet failed: ${sitePacket}`);
+  const sitePrompt = await run(['site', 'prompt', workspaceId, '--home', home]);
+  if (!sitePrompt.includes('Contextula Multi-Page Site Task')) throw new Error(`Site prompt failed: ${sitePrompt}`);
   const siteBuild = await run(['site', 'build', workspaceId, '--home', home]);
   if (!siteBuild.includes('site build:') || !siteBuild.includes('link check: ok')) throw new Error(`Site build failed: ${siteBuild}`);
   const siteCritique = await run(['site', 'critique', workspaceId, '--home', home]);

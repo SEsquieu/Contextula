@@ -17,7 +17,7 @@ import { writePortfolioReport } from './lib/portfolio.js';
 import { materializePreferences } from './lib/preferences.js';
 import { generateBrief, generateReport } from './lib/reports.js';
 import { buildReview } from './lib/review.js';
-import { buildStaticSite, critiqueStaticSite, generateSitePlan } from './lib/site.js';
+import { buildSitePacket, buildStaticSite, critiqueStaticSite, generateSitePlan, sitePrompt } from './lib/site.js';
 import { materializeWorkspaceState, readTimeline } from './lib/state.js';
 import { generateTickets, listTickets } from './lib/tickets.js';
 import { validateHome, validateWorkspace } from './lib/validation.js';
@@ -280,6 +280,16 @@ async function createSitePlan(home, workspaceId) {
   console.log(`approval: ${result.approval.id}`);
 }
 
+async function exportSitePacket(home, workspaceId, flags) {
+  const packet = await buildSitePacket(home, workspaceId, { variant: flags.variant || 'site-provider-v1' });
+  console.log(JSON.stringify(packet, null, 2));
+}
+
+async function exportSitePrompt(home, workspaceId, flags) {
+  const packet = await buildSitePacket(home, workspaceId, { variant: flags.variant || 'site-provider-v1' });
+  console.log(sitePrompt(packet));
+}
+
 async function createSiteBuild(home, workspaceId) {
   const result = await buildStaticSite(home, workspaceId);
   console.log(`site build: ${result.artifact}`);
@@ -338,7 +348,7 @@ async function printValidation(home, workspaceId) {
 }
 
 function help() {
-  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  visual reference <workspace-id-or-slug> --image <path> [--note <text>] [--home <path>]\n  site plan <workspace-id-or-slug> [--home <path>]\n  site build <workspace-id-or-slug> [--home <path>]\n  site critique <workspace-id-or-slug> [--build latest|builds/sitebuild_...] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
+  console.log(`Contextula ${VERSION}\n\nCommands:\n  init [--home <path>]\n  intake customer --name <name> [--website <url>] [--allow-duplicate] [--home <path>]\n  demo site --name <name> --website <url> [--max-pages 4] [--home <path>]\n  research <workspace-id-or-slug> [--max-pages 4] [--home <path>]\n  agent providers\n  agent packet <workspace-id-or-slug> [--home <path>]\n  agent prompt <workspace-id-or-slug> [--home <path>]\n  agent research <workspace-id-or-slug> [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  portfolio [--home <path>]\n  dashboard <workspace-id-or-slug> [--home <path>]\n  state <workspace-id-or-slug> [--home <path>]\n  timeline <workspace-id-or-slug> [--limit 20] [--home <path>]\n  status <workspace-id-or-slug> [--home <path>]\n  status set <workspace-id-or-slug> <status> [--home <path>]\n  preferences <workspace-id-or-slug> [--home <path>]\n  artifacts <workspace-id-or-slug> [--home <path>]\n  list [--home <path>]\n  show <workspace-id-or-slug> [--home <path>]\n  approvals <workspace-id-or-slug> [--home <path>]\n  approve <workspace-id-or-slug> <approval-id> [--home <path>]\n  reject <workspace-id-or-slug> <approval-id> [--home <path>]\n  report <workspace-id-or-slug> [--home <path>]\n  brief <workspace-id-or-slug> [--home <path>]\n  claims <workspace-id-or-slug> [--status active|all] [--home <path>]\n  claim add <workspace-id-or-slug> --text <text> [--confidence 0.7] [--source manual] [--home <path>]\n  draft outreach <workspace-id-or-slug> [--channel email] [--tone concise] [--home <path>]\n  tickets generate <workspace-id-or-slug> [--home <path>]\n  tickets list <workspace-id-or-slug> [--home <path>]\n  design packet <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design prompt <workspace-id-or-slug> [--variant provider-v1] [--home <path>]\n  design brief <workspace-id-or-slug> [--home <path>]\n  design mock <workspace-id-or-slug> [--variant v1] [--home <path>]\n  design html <workspace-id-or-slug> [--variant v1] [--provider static|json|openclaw] [--response <path>] [--home <path>]\n  visual snapshot <workspace-id-or-slug> [--url <url>] [--artifact <path>] [--viewport desktop|mobile] [--home <path>]\n  visual reference <workspace-id-or-slug> --image <path> [--note <text>] [--home <path>]\n  site packet <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site prompt <workspace-id-or-slug> [--variant site-provider-v1] [--home <path>]\n  site plan <workspace-id-or-slug> [--home <path>]\n  site build <workspace-id-or-slug> [--home <path>]\n  site critique <workspace-id-or-slug> [--build latest|builds/sitebuild_...] [--home <path>]\n  design critique <workspace-id-or-slug> --feedback <text> [--artifact design/mocks/homepage-v1.md] [--home <path>]\n  design revise <workspace-id-or-slug> [--from design/mocks/homepage-v1.md] [--variant v2] [--home <path>]\n  review <workspace-id-or-slug> [--home <path>]\n  validate [workspace-id-or-slug] [--home <path>]\n\nStatuses:\n  ${WORKSPACE_STATUSES.join(', ')}\n\nEnvironment:\n  CONTEXTULA_HOME overrides the default ~/.contextula data home.\n  CONTEXTULA_OPENCLAW_RESEARCH_COMMAND configures --provider openclaw.\n`);
 }
 
 async function main() {
@@ -395,6 +405,8 @@ async function main() {
   if (cmd === 'design' && subcmd === 'html') return createDesignHtml(home, maybeId, flags);
   if (cmd === 'visual' && subcmd === 'snapshot') return createVisualSnapshot(home, maybeId, flags);
   if (cmd === 'visual' && subcmd === 'reference') return createVisualReference(home, maybeId, flags);
+  if (cmd === 'site' && subcmd === 'packet') return exportSitePacket(home, maybeId, flags);
+  if (cmd === 'site' && subcmd === 'prompt') return exportSitePrompt(home, maybeId, flags);
   if (cmd === 'site' && subcmd === 'plan') return createSitePlan(home, maybeId);
   if (cmd === 'site' && subcmd === 'build') return createSiteBuild(home, maybeId);
   if (cmd === 'site' && subcmd === 'critique') return createSiteCritique(home, maybeId, flags);

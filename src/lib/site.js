@@ -149,6 +149,89 @@ export async function generateSitePlan(home, workspaceId) {
   return { plan, artifacts: ['site/sitemap.json', 'site/design-system.json', 'site/site-plan.md'], approval: approvalResult.approval };
 }
 
+export async function buildSitePacket(home, workspaceId, { variant = 'site-provider-v1' } = {}) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  const profile = await readJson(path.join(root, 'profile.json'), {});
+  const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []), 24);
+  const classification = classifyWorkspace(claims);
+  const sitePlan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
+  const designSystem = await readJson(path.join(root, 'site', 'design-system.json'), null);
+  const critiqueLearning = await readJson(path.join(root, 'site', 'critique-learning.json'), null);
+  const build = await latestBuild(root);
+  const latestCritique = build ? await readJson(path.join(root, build.root || `builds/${build.directory || build.id}`, 'contextula', 'site-critique.json'), null) : null;
+  return {
+    version: 1,
+    kind: 'contextula.site.packet',
+    generatedAt: now(),
+    variant,
+    workspace: { id: record.id, name: record.name || record.slug, type: record.type, status: record.status },
+    profile,
+    classification,
+    claims,
+    sitePlan,
+    designSystem,
+    latestBuild: build ? { id: build.id, root: build.root || `builds/${build.directory || build.id}`, createdAt: build.createdAt, routes: build.routes || [] } : null,
+    critiqueLearning,
+    latestCritique: latestCritique ? { artifact: `${build.root || `builds/${build.directory || build.id}`}/contextula/site-critique.json`, verdict: latestCritique.verdict, score: latestCritique.score, findings: latestCritique.findings || [], strengths: latestCritique.strengths || [] } : null,
+    policy: {
+      workspaceOnly: true,
+      noExternalContact: true,
+      customerFacingRequiresApproval: true,
+      durableWritesByContextulaOnly: true,
+      hostingIsExternal: true
+    },
+    objective: 'Plan or generate a coherent multi-page static site package using the workspace sitemap, grounded claims, and critique-learning signals.'
+  };
+}
+
+export function sitePrompt(packet) {
+  return `# Contextula Multi-Page Site Task
+
+You are a bounded site planning/build provider for Contextula.
+
+Use ONLY the packet below. Do not invent credentials, reviews, guarantees, products, services, contact details, or external facts.
+
+Return ONLY valid JSON matching this shape:
+
+\`\`\`json
+{
+  "summary": "Short rationale grounded in the packet.",
+  "sitemap": {
+    "routes": [
+      { "path": "/", "title": "Home", "purpose": "...", "status": "core", "opsGoal": "...", "content": [] }
+    ],
+    "globalNav": []
+  },
+  "designSystem": {
+    "intent": "...",
+    "components": [],
+    "opsHooks": []
+  },
+  "pages": [
+    { "path": "/", "html": "<!doctype html>...complete page HTML...", "ops": { "sections": [], "suggestedEvents": [], "contentSlots": [] } }
+  ],
+  "assumptions": [],
+  "approvalNotes": []
+}
+\`\`\`
+
+Rules:
+
+- Preserve the workspace classification and primary goal unless the packet contains strong contradictory evidence.
+- Use critiqueLearning/latestCritique as reinforcement: avoid repeating findings and preserve proven strengths.
+- Keep pages internally coherent: shared nav, consistent design language, stable route paths, stable section ids.
+- Do not add external scripts, remote assets, tracking pixels, or real form submissions.
+- Treat output as a review package, not a deployment. Customer-facing use still requires approval.
+- If the packet's current plan is already strong, prefer incremental refinement over unnecessary reinvention.
+
+Packet:
+
+\`\`\`json
+${JSON.stringify(packet, null, 2)}
+\`\`\`
+`;
+}
+
 function routeToFile(routePath) {
   if (routePath === '/') return 'index.html';
   return `${routePath.replace(/^\//, '').replace(/\/$/, '')}/index.html`;

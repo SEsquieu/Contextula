@@ -6,6 +6,10 @@ export function defaultOpenClawDesignCommand() {
   return process.env.CONTEXTULA_OPENCLAW_DESIGN_COMMAND || process.env.CONTEXTULA_OPENCLAW_COMMAND || null;
 }
 
+export function defaultOpenClawSiteCommand() {
+  return process.env.CONTEXTULA_OPENCLAW_SITE_COMMAND || process.env.CONTEXTULA_OPENCLAW_COMMAND || null;
+}
+
 export function listResearchProviders() {
   const openclawCommand = defaultOpenClawResearchCommand();
   return [
@@ -54,6 +58,26 @@ export function listDesignProviders() {
       command: openclawCommand,
       env: ['CONTEXTULA_OPENCLAW_DESIGN_COMMAND', 'CONTEXTULA_OPENCLAW_COMMAND'],
       description: 'Runs a configured command that reads the design prompt from stdin and writes design JSON to stdout.'
+    }
+  ];
+}
+
+export function listSiteProviders() {
+  const openclawCommand = defaultOpenClawSiteCommand();
+  return [
+    {
+      name: 'json',
+      available: true,
+      configured: true,
+      description: 'Reads multi-page site provider JSON from --response <path>.'
+    },
+    {
+      name: 'openclaw',
+      available: Boolean(openclawCommand),
+      configured: Boolean(openclawCommand),
+      command: openclawCommand,
+      env: ['CONTEXTULA_OPENCLAW_SITE_COMMAND', 'CONTEXTULA_OPENCLAW_COMMAND'],
+      description: 'Runs a configured command that reads the site prompt from stdin and writes site JSON to stdout.'
     }
   ];
 }

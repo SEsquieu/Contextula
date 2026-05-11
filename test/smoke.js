@@ -103,6 +103,8 @@ try {
   if (!sitePrompt.includes('Contextula Multi-Page Site Task')) throw new Error(`Site prompt failed: ${sitePrompt}`);
   const siteBuild = await run(['site', 'build', workspaceId, '--home', home]);
   if (!siteBuild.includes('site build:') || !siteBuild.includes('link check: ok')) throw new Error(`Site build failed: ${siteBuild}`);
+  const siteGenerate = await run(['site', 'generate', workspaceId, '--home', home, '--provider', 'json', '--response', path.resolve('docs/fixtures/site-generate-response-good.json')]);
+  if (!siteGenerate.includes('site generate:') || !siteGenerate.includes('provider run: site/provider-runs/srun_') || !siteGenerate.includes('approval:')) throw new Error(`Site generate failed: ${siteGenerate}`);
   const siteCritique = await run(['site', 'critique', workspaceId, '--home', home]);
   if (!siteCritique.includes('site critique:') || !siteCritique.includes('verdict:')) throw new Error(`Site critique failed: ${siteCritique}`);
   if (!siteCritique.includes('learning: site/critique-learning.json')) throw new Error(`Site critique learning missing: ${siteCritique}`);

@@ -1,0 +1,25 @@
+{
+  "summary": "Fixture multi-page site package grounded in a project-hub plan.",
+  "sitemap": {
+    "routes": [
+      { "path": "/", "title": "Home", "purpose": "Orient visitors around the hub.", "status": "core", "opsGoal": "Route visitors to active project destinations.", "content": ["signal hero", "project routing"] },
+      { "path": "/projects/", "title": "Projects", "purpose": "Show live and planned projects.", "status": "core", "opsGoal": "Increase outbound project clicks.", "content": ["live project cards"] },
+      { "path": "/about/", "title": "About", "purpose": "Explain the site identity.", "status": "core", "opsGoal": "Build identity continuity.", "content": ["maker context"] },
+      { "path": "/notes/", "title": "Notes", "purpose": "Prepare a future notes lane.", "status": "planned", "opsGoal": "Create a content slot for updates.", "content": ["dev log placeholder"] }
+    ],
+    "globalNav": ["Home", "Projects", "About", "Notes"]
+  },
+  "designSystem": {
+    "intent": "Retro terminal project-hub fixture.",
+    "components": ["terminal header", "project cards", "status footer"],
+    "opsHooks": ["route ids", "project click events"]
+  },
+  "pages": [
+    { "path": "/", "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Home</title></head><body><nav><a href=\"/\">Home</a><a href=\"/projects/\">Projects</a><a href=\"/about/\">About</a><a href=\"/notes/\">Notes</a></nav><main id=\"hero\"><h1>Fixture Signal Hub</h1><p>Projects, notes, and experiments.</p></main></body></html>", "ops": { "sections": [{ "id": "hero", "purpose": "Orient visitors." }], "suggestedEvents": [], "contentSlots": [] } },
+    { "path": "/projects/", "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Projects</title></head><body><nav><a href=\"/\">Home</a></nav><main id=\"projects\"><h1>Projects</h1><p>Live and planned nodes.</p></main></body></html>", "ops": { "sections": [{ "id": "projects", "purpose": "List projects." }], "suggestedEvents": [], "contentSlots": [] } },
+    { "path": "/about/", "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>About</title></head><body><nav><a href=\"/\">Home</a></nav><main id=\"about\"><h1>About</h1><p>Identity continuity.</p></main></body></html>", "ops": { "sections": [{ "id": "about", "purpose": "Explain identity." }], "suggestedEvents": [], "contentSlots": [] } },
+    { "path": "/notes/", "html": "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><title>Notes</title></head><body><nav><a href=\"/\">Home</a></nav><main id=\"notes\"><h1>Notes</h1><p>Future updates lane.</p></main></body></html>", "ops": { "sections": [{ "id": "notes", "purpose": "Prepare updates lane." }], "suggestedEvents": [], "contentSlots": [] } }
+  ],
+  "assumptions": ["Fixture content is intentionally minimal."],
+  "approvalNotes": ["Review before customer-facing use."]
+}

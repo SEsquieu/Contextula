@@ -1,10 +1,12 @@
 import path from 'node:path';
-import { access, mkdir, readdir, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { appendJsonl, id, now, readJson, readJsonl, VERSION, writeJson } from './util.js';
 import { resolveWorkspace } from './storage.js';
 import { classifyWorkspace } from './classification.js';
 import { createApproval } from './approvals.js';
 import { addClaim } from './claims.js';
+import { runProviderCommand } from './provider-command.js';
+import { defaultOpenClawSiteCommand } from './providers.js';
 
 function topClaims(claims, limit = 16) {
   return claims
@@ -230,6 +232,141 @@ Packet:
 ${JSON.stringify(packet, null, 2)}
 \`\`\`
 `;
+}
+
+function normalizeRoutePath(routePath) {
+  const value = String(routePath || '').trim();
+  if (!value || value === '/') return '/';
+  return `/${value.replace(/^\/+|\/+$/g, '')}/`;
+}
+
+function normalizeSiteProviderResponse(response, packet) {
+  if (!response || typeof response !== 'object' || Array.isArray(response)) throw new Error('Site provider response must be an object');
+  const sitemap = response.sitemap && typeof response.sitemap === 'object' && !Array.isArray(response.sitemap) ? response.sitemap : {};
+  const routes = Array.isArray(sitemap.routes) ? sitemap.routes.map((route) => ({
+    path: normalizeRoutePath(route.path),
+    title: String(route.title || route.path || 'Untitled'),
+    purpose: String(route.purpose || ''),
+    nav: route.nav !== false,
+    status: String(route.status || 'planned'),
+    opsGoal: String(route.opsGoal || ''),
+    content: Array.isArray(route.content) ? route.content.map((item) => String(item)) : []
+  })) : [];
+  if (!routes.length) throw new Error('Site provider response sitemap.routes must contain at least one route');
+  const routePaths = new Set(routes.map((route) => route.path));
+  if (!routePaths.has('/')) throw new Error('Site provider response must include the home route /');
+
+  const pages = Array.isArray(response.pages) ? response.pages.map((page) => ({
+    path: normalizeRoutePath(page.path),
+    html: String(page.html || ''),
+    ops: page.ops && typeof page.ops === 'object' && !Array.isArray(page.ops) ? {
+      sections: Array.isArray(page.ops.sections) ? page.ops.sections : [],
+      suggestedEvents: Array.isArray(page.ops.suggestedEvents) ? page.ops.suggestedEvents : [],
+      contentSlots: Array.isArray(page.ops.contentSlots) ? page.ops.contentSlots : []
+    } : { sections: [], suggestedEvents: [], contentSlots: [] }
+  })) : [];
+  if (!pages.length) throw new Error('Site provider response pages must contain at least one page');
+  for (const page of pages) {
+    if (!routePaths.has(page.path)) throw new Error(`Provider page path is not in sitemap.routes: ${page.path}`);
+    if (!/<!doctype html/i.test(page.html) && !/<html/i.test(page.html)) throw new Error(`Provider page must be complete HTML: ${page.path}`);
+  }
+  const pagePaths = new Set(pages.map((page) => page.path));
+  for (const route of routes) if (!pagePaths.has(route.path)) throw new Error(`Missing provider page HTML for route: ${route.path}`);
+
+  const designSystem = response.designSystem && typeof response.designSystem === 'object' && !Array.isArray(response.designSystem) ? response.designSystem : {};
+  return {
+    summary: String(response.summary || ''),
+    sitemap: {
+      version: 1,
+      generatedAt: now(),
+      workspaceId: packet.workspace.id,
+      workspaceName: packet.workspace.name,
+      classification: { kind: packet.classification.kind, label: packet.classification.label, primaryGoal: packet.classification.primaryGoal },
+      routes,
+      globalNav: Array.isArray(sitemap.globalNav) ? sitemap.globalNav.map((item) => String(item)) : routes.filter((route) => route.nav).map((route) => route.title),
+      externalDestinations: Array.isArray(sitemap.externalDestinations) ? sitemap.externalDestinations : packet.sitePlan?.externalDestinations || [],
+      assumptions: Array.isArray(response.assumptions) ? response.assumptions.map((item) => String(item)) : [],
+      approval: { required: true, type: 'site.build.review' }
+    },
+    designSystem: {
+      intent: String(designSystem.intent || packet.designSystem?.intent || ''),
+      components: Array.isArray(designSystem.components) ? designSystem.components.map((item) => String(item)) : [],
+      opsHooks: Array.isArray(designSystem.opsHooks) ? designSystem.opsHooks.map((item) => String(item)) : []
+    },
+    pages,
+    assumptions: Array.isArray(response.assumptions) ? response.assumptions.map((item) => String(item)) : [],
+    approvalNotes: Array.isArray(response.approvalNotes) ? response.approvalNotes.map((item) => String(item)) : []
+  };
+}
+
+async function rawSiteOutput(provider, { response, command }, prompt) {
+  if (provider === 'json') {
+    if (!response) throw new Error('JSON site provider requires --response <path>');
+    return readFile(response, 'utf8');
+  }
+  if (provider === 'openclaw') {
+    const providerCommand = command || defaultOpenClawSiteCommand();
+    if (!providerCommand) throw new Error('OpenClaw site provider requires CONTEXTULA_OPENCLAW_SITE_COMMAND or CONTEXTULA_OPENCLAW_COMMAND.');
+    return runProviderCommand(providerCommand, prompt);
+  }
+  throw new Error(`Unknown site provider: ${provider}`);
+}
+
+export async function runSiteProvider(home, workspaceId, { provider = 'json', response, command, variant = 'site-provider-v1' } = {}) {
+  const { record, root } = await resolveWorkspace(home, workspaceId);
+  await mkdir(path.join(root, 'site', 'provider-runs'), { recursive: true });
+  const packet = await buildSitePacket(home, workspaceId, { variant });
+  const prompt = sitePrompt(packet);
+  const runId = id('srun');
+  const runArtifact = `site/provider-runs/${runId}`;
+  const runDir = path.join(root, runArtifact);
+  await mkdir(runDir, { recursive: true });
+  await writeJson(path.join(runDir, 'packet.json'), packet);
+  await writeFile(path.join(runDir, 'prompt.md'), prompt, 'utf8');
+
+  let result;
+  try {
+    const raw = await rawSiteOutput(provider, { response, command }, prompt);
+    await writeFile(path.join(runDir, 'response.raw.json'), raw.replace(/^\uFEFF/, ''), 'utf8');
+    result = normalizeSiteProviderResponse(JSON.parse(raw.replace(/^\uFEFF/, '')), packet);
+    await writeJson(path.join(runDir, 'response.normalized.json'), result);
+  } catch (error) {
+    await writeJson(path.join(runDir, 'errors.json'), { message: error.message || String(error), provider, at: now() });
+    await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.provider.failed', at: now(), provider, run: runArtifact, error: error.message || String(error) });
+    throw error;
+  }
+
+  const buildId = id('sitebuild');
+  const relativeRoot = `builds/${buildId}`;
+  const buildRoot = path.join(root, relativeRoot);
+  await mkdir(path.join(buildRoot, 'contextula'), { recursive: true });
+  for (const page of result.pages) {
+    const file = path.join(buildRoot, routeToFile(page.path));
+    await mkdir(path.dirname(file), { recursive: true });
+    await writeFile(file, page.html, 'utf8');
+  }
+
+  const linkCheck = validateLinks(result.sitemap);
+  const build = { id: buildId, version: 1, createdAt: now(), workspaceId: record.id, provider, providerRun: runArtifact, plan: 'site/sitemap.json', root: relativeRoot, routes: result.sitemap.routes.map((route) => ({ path: route.path, file: routeToFile(route.path) })) };
+  await writeJson(path.join(buildRoot, 'contextula', 'build.json'), build);
+  await writeJson(path.join(buildRoot, 'contextula', 'sitemap.json'), result.sitemap);
+  await writeJson(path.join(buildRoot, 'contextula', 'design-system.json'), result.designSystem);
+  await writeJson(path.join(buildRoot, 'contextula', 'pages.ops.json'), { version: 1, generatedAt: now(), providerRun: runArtifact, pages: result.pages.map((page) => ({ path: page.path, ops: page.ops })) });
+  await writeJson(path.join(buildRoot, 'contextula', 'link-check.json'), linkCheck);
+  const report = `# Provider Site Build Report\n\nBuild: ${buildId}\nWorkspace: ${record.name || record.slug}\nProvider: ${provider}\nProvider run: ${runArtifact}\nGenerated: ${build.createdAt}\n\n## Summary\n\n${result.summary || '(none)'}\n\n## Routes\n\n${build.routes.map((route) => `- ${route.path} -> ${route.file}`).join('\n')}\n\n## Approval notes\n\n${result.approvalNotes.map((note) => `- ${note}`).join('\n') || '- None.'}\n\n## Link check\n\n${linkCheck.ok ? 'OK' : 'FAILED'}\n`;
+  await writeFile(path.join(buildRoot, 'contextula', 'build-report.md'), report, 'utf8');
+  await appendJsonl(path.join(root, 'timeline.jsonl'), { id: id('evt'), type: 'site.provider.generated', at: now(), provider, artifact: `${relativeRoot}/index.html`, build: relativeRoot, providerRun: runArtifact, routes: build.routes.length, linkCheck: linkCheck.ok, classification: packet.classification.kind });
+  const approvalResult = await createApproval(root, {
+    id: id('appr'),
+    version: VERSION,
+    type: 'site.build.review',
+    status: 'pending',
+    requestedAt: now(),
+    requestedBy: 'contextula-site-provider',
+    artifact: `${relativeRoot}/index.html`,
+    reason: 'Provider-backed multi-page site builds require review before customer-facing presentation, deployment, or implementation.'
+  });
+  return { build, linkCheck, artifact: `${relativeRoot}/index.html`, report: `${relativeRoot}/contextula/build-report.md`, providerRun: runArtifact, approval: approvalResult.approval };
 }
 
 function routeToFile(routePath) {

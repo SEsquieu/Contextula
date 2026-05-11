@@ -118,8 +118,8 @@ export async function generateCustomerReviewPackage(home, workspaceId, { preview
   const approvalCopy = approvalLabels(pending);
   const primaryTitle = prospectMode ? `I made a private first preview for ${record.name || record.slug}` : `${record.name || record.slug} review package`;
   const primaryDeck = prospectMode
-    ? 'Contextula gives your business a digital ops rep: it learns the context, drafts improvements, creates previews, and waits for approval before anything goes live.'
-    : 'Here is what your digital ops rep understands so far, what is ready to review, and what needs approval before anything goes live.';
+    ? 'Your persistent digital operator: Contextula continuously modernizes and grows your public presence through conversation, iteration, and operational continuity.'
+    : 'Your Contextula operator understands the business context, prepares reviewable work, and waits for approval before anything goes live.';
 
   const html = `<!doctype html>
 <html lang="en">
@@ -128,49 +128,70 @@ export async function generateCustomerReviewPackage(home, workspaceId, { preview
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contextula Onboarding — ${escapeHtml(record.name || record.slug)}</title>
   <style>
-    :root { color-scheme: light dark; --bg:#0b0f14; --panel:#121821; --line:#263241; --text:#edf5ff; --muted:#9caabd; --accent:#70e0a3; --red:#ff4d5e; --warn:#ffd166; }
+    :root { color-scheme: dark; --bg:#0d0d0d; --black:#0d0d0d; --charcoal:#1a1a1a; --panel:#111; --panel2:#171717; --line:rgba(245,245,245,.14); --text:#f5f5f5; --muted:#b9b9b9; --red:#e21d2d; --red2:#94141d; --white:#f5f5f5; }
     * { box-sizing:border-box; }
-    body { margin:0; background:radial-gradient(circle at 20% -10%,rgba(112,224,163,.20),transparent 35%),linear-gradient(135deg,#091019,#101820); color:var(--text); font-family: Inter, ui-sans-serif, system-ui, Segoe UI, Arial; }
-    main { max-width:1120px; margin:0 auto; padding:34px 20px 56px; }
-    header, .card, .offer { border:1px solid var(--line); background:rgba(18,24,33,.86); box-shadow:0 18px 60px rgba(0,0,0,.20); }
-    header { padding:28px; margin-bottom:18px; }
-    h1 { margin:0 0 10px; font-size:clamp(2.35rem,6vw,5rem); line-height:.92; letter-spacing:-.06em; }
-    h2 { margin:0 0 12px; font-size:1.02rem; text-transform:uppercase; letter-spacing:.12em; color:var(--accent); }
+    body { margin:0; min-height:100vh; background:radial-gradient(circle at 8% 4%,rgba(226,29,45,.34) 0 55px,rgba(226,29,45,.12) 56px 105px,transparent 106px),radial-gradient(circle at 88% 14%,rgba(226,29,45,.18),transparent 28%),linear-gradient(135deg,#050505 0%,#0d0d0d 42%,#151010 100%); color:var(--text); font-family: Inter, ui-sans-serif, system-ui, Segoe UI, Arial; }
+    body::before { content:""; position:fixed; inset:0; pointer-events:none; background:linear-gradient(90deg,rgba(226,29,45,.05) 1px,transparent 1px),linear-gradient(rgba(245,245,245,.025) 1px,transparent 1px); background-size:54px 54px; mask-image:linear-gradient(to bottom,black,transparent 72%); }
+    body::after { content:""; position:fixed; left:0; right:0; bottom:0; height:22vh; pointer-events:none; background:linear-gradient(to top,rgba(0,0,0,.72),transparent); }
+    main { position:relative; z-index:1; max-width:1160px; margin:0 auto; padding:34px 20px 64px; }
+    header, .card, .offer, .principles { border:1px solid var(--line); background:linear-gradient(145deg,rgba(18,18,18,.94),rgba(8,8,8,.92)); box-shadow:0 22px 70px rgba(0,0,0,.48), inset 0 1px 0 rgba(245,245,245,.04); }
+    header { position:relative; overflow:hidden; padding:32px; margin-bottom:18px; min-height:360px; }
+    header::after { content:""; position:absolute; right:-80px; top:-110px; width:320px; height:320px; border-radius:50%; background:radial-gradient(circle,rgba(226,29,45,.22),transparent 62%); filter:blur(2px); }
+    .brand-lockup { position:relative; z-index:1; display:flex; align-items:center; gap:18px; margin-bottom:42px; }
+    .fang-mark { position:relative; width:88px; height:88px; display:grid; place-items:center; border-radius:20px; background:linear-gradient(145deg,var(--red),#750913); color:#080808; font-family:Georgia,serif; font-size:74px; font-weight:900; line-height:1; box-shadow:0 0 34px rgba(226,29,45,.34); }
+    .fang-mark::before,.fang-mark::after{ content:""; position:absolute; top:18px; width:0; height:0; border-left:8px solid transparent; border-right:8px solid transparent; border-top:24px solid #080808; transform:rotate(6deg); }
+    .fang-mark::before{ left:35px; } .fang-mark::after{ right:20px; transform:rotate(-8deg); }
+    .wordmark { font-family:Georgia, 'Times New Roman', serif; font-size:clamp(44px,7vw,82px); letter-spacing:-.07em; line-height:.82; color:var(--white); text-shadow:0 8px 24px rgba(0,0,0,.8); }
+    .tagline { margin-top:10px; color:var(--red); text-transform:uppercase; letter-spacing:.42em; font-size:12px; font-weight:800; }
+    h1 { position:relative; z-index:1; margin:0 0 14px; font-family:Georgia,'Times New Roman',serif; font-size:clamp(2.5rem,6.8vw,5.6rem); line-height:.94; letter-spacing:-.055em; max-width:900px; }
+    h2 { margin:0 0 12px; font-size:.82rem; text-transform:uppercase; letter-spacing:.22em; color:var(--red); }
     h3 { margin:0 0 8px; }
-    .deck { color:var(--muted); font-size:1.08rem; line-height:1.6; max-width:820px; }
+    .deck { position:relative; z-index:1; color:var(--muted); font-size:1.08rem; line-height:1.65; max-width:820px; }
+    .deck strong, .scarlet { color:var(--red); font-weight:800; }
     .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(255px,1fr)); gap:14px; }
-    .card, .offer { padding:18px; }
-    .offer { margin:14px 0; display:grid; grid-template-columns:1.3fr .7fr; gap:18px; align-items:center; }
-    .hero-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
-    a.button, .button { display:inline-block; background:var(--accent); color:#07110b; padding:12px 15px; text-decoration:none; font-weight:900; border-radius:2px; }
-    .button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
-    .button.red { background:var(--red); color:white; }
+    .card, .offer, .principles { padding:19px; }
+    .offer { margin:14px 0; display:grid; grid-template-columns:1.25fr .75fr; gap:18px; align-items:center; }
+    .principles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:14px 0; }
+    .principle { border-left:2px solid var(--red); padding:8px 12px; color:var(--muted); text-transform:uppercase; letter-spacing:.12em; font-size:12px; }
+    .hero-actions { position:relative; z-index:1; display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+    a.button, .button { display:inline-block; background:var(--white); color:#080808; padding:13px 16px; text-decoration:none; font-weight:900; border-radius:4px; text-transform:uppercase; letter-spacing:.08em; font-size:12px; }
+    .button.secondary { background:transparent; color:var(--white); border:1px solid var(--line); }
+    .button.red { background:linear-gradient(135deg,var(--red),#9b111d); color:white; box-shadow:0 0 28px rgba(226,29,45,.24); }
     ul, ol { margin:0; padding-left:20px; }
-    li { margin:8px 0; color:var(--text); line-height:1.45; }
+    li { margin:8px 0; color:var(--text); line-height:1.48; }
+    a { color:var(--white); }
     .muted { color:var(--muted); }
-    .pill { display:inline-block; border:1px solid var(--line); color:var(--muted); padding:4px 8px; font-size:.78rem; text-transform:uppercase; letter-spacing:.08em; }
-    code { color:var(--warn); }
-    .close { border-color:rgba(255,77,94,.45); }
-    @media(max-width:760px){ .offer{grid-template-columns:1fr} }
+    .pill { display:inline-block; border:1px solid var(--line); color:var(--muted); padding:4px 8px; font-size:.72rem; text-transform:uppercase; letter-spacing:.12em; }
+    code { color:#ff8a94; }
+    .close { border-color:rgba(226,29,45,.45); background:linear-gradient(145deg,rgba(226,29,45,.16),rgba(17,17,17,.92)); }
+    @media(max-width:760px){ header{min-height:auto}.brand-lockup{align-items:flex-start}.fang-mark{width:64px;height:64px;font-size:54px}.tagline{letter-spacing:.22em}.offer{grid-template-columns:1fr} }
   </style>
 </head>
 <body>
   <main>
     <header>
-      <p class="pill">Contextula onboarding package</p>
+      <div class="brand-lockup">
+        <div class="fang-mark" aria-hidden="true">C</div>
+        <div><div class="wordmark">contextula</div><div class="tagline">Persistent context. Continuous growth.</div></div>
+      </div>
+      <p class="pill">Private operator brief</p>
       <h1>${escapeHtml(primaryTitle)}</h1>
       <p class="deck">${escapeHtml(primaryDeck)}</p>
-      ${note ? `<p class="deck"><strong>Note:</strong> ${escapeHtml(note)}</p>` : ''}
+      ${note ? `<p class="deck"><strong>Operator note:</strong> ${escapeHtml(note)}</p>` : ''}
       <div class="hero-actions">
         ${effectivePreviewUrl ? `<a class="button red" href="${escapeHtml(effectivePreviewUrl)}">Open private preview</a>` : '<span class="button secondary">Preview not recorded yet</span>'}
         <span class="button secondary">${pending.length} approval${pending.length === 1 ? '' : 's'} waiting</span>
       </div>
     </header>
 
+    <section class="principles" aria-label="Contextula principles">
+      <div class="principle">Conversational</div><div class="principle">Iterative</div><div class="principle">Trusted</div><div class="principle">Continuous</div>
+    </section>
+
     <section class="offer">
       <div>
         <h2>The offer</h2>
-        <p class="deck">Start your public journey with a digital ops rep — first a clean public presence, then ongoing edits, campaigns, lead capture, and growth experiments that stay grounded in your business context.</p>
+        <p class="deck"><span class="scarlet">Your persistent digital operator.</span> Start with a clean public presence, then keep improving through edits, campaigns, lead capture, and growth experiments that stay grounded in your business context.</p>
       </div>
       <div class="card close">
         <h3>Simple next step</h3>

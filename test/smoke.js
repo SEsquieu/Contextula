@@ -73,6 +73,10 @@ try {
   if (!brief.includes('Modernization Brief')) throw new Error(`Brief generation failed: ${brief}`);
   const draft = await run(['draft', 'outreach', workspaceId, '--home', home]);
   if (!draft.includes('approval:')) throw new Error(`Draft approval was not created: ${draft}`);
+  const contentDraft = await run(['content', 'draft', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post']);
+  if (!contentDraft.includes('content draft:') || !contentDraft.includes('approval:')) throw new Error(`Content draft failed: ${contentDraft}`);
+  const contentList = await run(['content', 'list', workspaceId, '--home', home]);
+  if (!contentList.includes('Why this project hub exists') || !contentList.includes('content/drafts/')) throw new Error(`Content list failed: ${contentList}`);
   const generatedTickets = await run(['tickets', 'generate', workspaceId, '--home', home]);
   if (!generatedTickets.includes('generated')) throw new Error(`Ticket generation failed: ${generatedTickets}`);
   const tickets = await run(['tickets', 'list', workspaceId, '--home', home]);
@@ -143,7 +147,7 @@ try {
   if (!validation.includes('ok')) throw new Error(`Workspace validation failed: ${validation}`);
   await run(['approve', workspaceId, approvalId, '--home', home]);
   const artifacts = await run(['artifacts', workspaceId, '--home', home]);
-  if (!artifacts.includes('reports/dashboard.html')) throw new Error(`Artifact summary failed: ${artifacts}`);
+  if (!artifacts.includes('reports/dashboard.html') || !artifacts.includes('content\\drafts') && !artifacts.includes('content/drafts')) throw new Error(`Artifact summary failed: ${artifacts}`);
   const approvalsAfter = await run(['approvals', workspaceId, '--home', home]);
   if (!approvalsAfter.includes('approved')) throw new Error('Approval did not update to approved');
 

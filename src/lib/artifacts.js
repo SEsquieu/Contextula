@@ -37,6 +37,7 @@ export async function listArtifacts(home, workspaceId) {
     if (await exists(path.join(root, artifact))) artifacts.push(artifact);
   }
   for (const artifact of await latestIn(root, 'drafts', 'outreach-')) artifacts.push(artifact);
+  for (const artifact of await latestIn(root, 'content/drafts')) artifacts.push(artifact);
   for (const artifact of await latestIn(root, 'approvals')) artifacts.push(artifact);
   return { record, root, artifacts: [...new Set(artifacts)] };
 }

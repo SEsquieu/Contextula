@@ -51,6 +51,7 @@ The page should unfold like a proposal/invitation:
 - Use cinematic hierarchy: oversized serif headline, red emphasis, quiet body copy.
 - Strong left/right composition with visual depth, not flat stacked cards only.
 - Ornamentation should frame and elevate the content: borders, seals, filigree, wax-stamp cues.
+- CTAs should not look like modern SaaS rectangles. Buttons should feel like lacquered invitation ribbons, wax-seal actions, engraved brass plates, or ceremonial reply cards.
 - Use real generated imagery/art direction, not only CSS gradients and boxes.
 - Avoid fake low-quality mockups, illegible dashboard text, or stock-photo SaaS devices.
 - Maintain enough business clarity that a local owner understands the offer immediately.
@@ -83,6 +84,8 @@ Avoid:
 - "Template"
 - "Fast and easy website builder"
 - Generic feature-list language without atmosphere
+- Hard card grids with decorative corners slapped on top
+- Flat modern buttons with a red fill and no materiality
 - Overexplaining internal artifacts, critique scores, or implementation details
 
 ## Key Product Truth

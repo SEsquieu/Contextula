@@ -28,6 +28,7 @@ export async function buildDesignPacket(home, workspaceId, { variant = 'provider
   const claims = topClaims(await readJsonl(path.join(root, 'memory', 'claims.jsonl')).catch(() => []));
   const classification = classifyWorkspace(claims);
   const designBrief = await readFile(path.join(root, 'design', 'briefs', 'design-brief.md'), 'utf8').catch(() => '');
+  const preferences = await readJson(path.join(root, 'memory', 'preferences.json'), null);
   const currentHomepage = await readFile(path.join(root, 'research', 'extracted', 'homepage.md'), 'utf8').catch(() => '');
   return {
     version: 1,
@@ -38,6 +39,7 @@ export async function buildDesignPacket(home, workspaceId, { variant = 'provider
     profile,
     classification,
     claims,
+    preferences,
     visualSnapshots: await latestVisualEvents(root, 'visual.snapshot.captured'),
     visualReferences: await latestVisualEvents(root, 'visual.reference.added'),
     artifacts: {
@@ -55,7 +57,7 @@ export async function buildDesignPacket(home, workspaceId, { variant = 'provider
 }
 
 export function designPrompt(packet) {
-  return `# Contextula Design Generation Task\n\nYou are the design generation provider for Contextula.\n\nReturn ONLY valid JSON matching this shape:\n\n\`\`\`json\n{\n  "html": "<!doctype html>...single-file static HTML...",\n  "rationale": "Short rationale grounded in packet claims and visual context.",\n  "ops": {\n    "conversionGoals": [\n      { "id": "primary-action", "label": "Primary visitor action", "selector": "[data-cta='primary-action']", "event": "primary_action_clicked" }\n    ],\n    "sections": [\n      { "id": "hero", "purpose": "Orient visitors and route primary intent" }\n    ],\n    "suggestedEvents": [\n      { "event": "primary_action_clicked", "selector": "[data-cta='primary-action']", "purpose": "Measure primary CTA engagement" }\n    ],\n    "integrationHooks": [],\n    "contentSlots": [],\n    "futureVariants": [],\n    "assumptions": []\n  }\n}\n\`\`\`\n\nRules:\n\n- Stay inside the provided packet. Do not invent credentials, reviews, guarantees, or external facts.\n- Generate a complete single-file HTML document with embedded CSS.\n- Preserve visual identity from visual claims/snapshots.\n- Avoid generic SaaS/startup landing-page patterns unless the packet supports them.\n- Do not include external scripts, tracking, forms that submit, or remote assets.\n- Design this as an operable business surface: use stable section ids, CTA data attributes, and meaningful ops metadata.\n- Customer-facing presentation still requires Contextula approval.\n\nPacket:\n\n\`\`\`json\n${JSON.stringify(packet, null, 2)}\n\`\`\`\n`;
+  return `# Contextula Design Generation Task\n\nYou are the design generation provider for Contextula.\n\nReturn ONLY valid JSON matching this shape:\n\n\`\`\`json\n{\n  "html": "<!doctype html>...single-file static HTML...",\n  "rationale": "Short rationale grounded in packet claims and visual context.",\n  "ops": {\n    "conversionGoals": [\n      { "id": "primary-action", "label": "Primary visitor action", "selector": "[data-cta='primary-action']", "event": "primary_action_clicked" }\n    ],\n    "sections": [\n      { "id": "hero", "purpose": "Orient visitors and route primary intent" }\n    ],\n    "suggestedEvents": [\n      { "event": "primary_action_clicked", "selector": "[data-cta='primary-action']", "purpose": "Measure primary CTA engagement" }\n    ],\n    "integrationHooks": [],\n    "contentSlots": [],\n    "futureVariants": [],\n    "assumptions": []\n  }\n}\n\`\`\`\n\nRules:\n\n- Stay inside the provided packet. Do not invent credentials, reviews, guarantees, or external facts.\n- Generate a complete single-file HTML document with embedded CSS.\n- Preserve visual identity from visual claims/snapshots and preference/feedback memory.\n- Avoid generic SaaS/startup landing-page patterns unless the packet supports them.\n- Do not include external scripts, tracking, forms that submit, or remote assets.\n- Design this as an operable business surface: use stable section ids, CTA data attributes, and meaningful ops metadata.\n- Customer-facing presentation still requires Contextula approval.\n\nPacket:\n\n\`\`\`json\n${JSON.stringify(packet, null, 2)}\n\`\`\`\n`;
 }
 
 function validateDesignResponse(response) {

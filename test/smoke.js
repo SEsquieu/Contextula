@@ -73,8 +73,10 @@ try {
   if (!brief.includes('Modernization Brief')) throw new Error(`Brief generation failed: ${brief}`);
   const draft = await run(['draft', 'outreach', workspaceId, '--home', home]);
   if (!draft.includes('approval:')) throw new Error(`Draft approval was not created: ${draft}`);
+  const feedback = await run(['feedback', 'record', workspaceId, '--home', home, '--area', 'content', '--text', 'Avoid explaining site ops or design rationale; write from inside the brand voice.']);
+  if (!feedback.includes('feedback:') || !feedback.includes('preferences:')) throw new Error(`Feedback record failed: ${feedback}`);
   const contentPacket = await run(['content', 'packet', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post']);
-  if (!contentPacket.includes('contextula.content.packet')) throw new Error(`Content packet failed: ${contentPacket}`);
+  if (!contentPacket.includes('contextula.content.packet') || !contentPacket.includes('Avoid explaining site ops')) throw new Error(`Content packet failed: ${contentPacket}`);
   const contentPrompt = await run(['content', 'prompt', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post']);
   if (!contentPrompt.includes('Contextula Content Drafting Task')) throw new Error(`Content prompt failed: ${contentPrompt}`);
   const contentDraft = await run(['content', 'draft', workspaceId, '--home', home, '--topic', 'Why this project hub exists', '--type', 'blog-post']);
@@ -112,7 +114,7 @@ try {
   const sitePlan = await run(['site', 'plan', workspaceId, '--home', home]);
   if (!sitePlan.includes('site plan:') || !sitePlan.includes('approval:')) throw new Error(`Site plan failed: ${sitePlan}`);
   const sitePacket = await run(['site', 'packet', workspaceId, '--home', home]);
-  if (!sitePacket.includes('contextula.site.packet')) throw new Error(`Site packet failed: ${sitePacket}`);
+  if (!sitePacket.includes('contextula.site.packet') || !sitePacket.includes('Avoid explaining site ops')) throw new Error(`Site packet failed: ${sitePacket}`);
   const sitePrompt = await run(['site', 'prompt', workspaceId, '--home', home]);
   if (!sitePrompt.includes('Contextula Multi-Page Site Task')) throw new Error(`Site prompt failed: ${sitePrompt}`);
   const siteBuild = await run(['site', 'build', workspaceId, '--home', home]);

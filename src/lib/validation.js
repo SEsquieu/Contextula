@@ -21,6 +21,7 @@ const requiredWorkspaceDirs = [
   'design/mocks',
   'drafts',
   'content/drafts',
+  'feedback',
   'approvals',
   'reports',
   'assets',

@@ -158,6 +158,7 @@ export async function buildSitePacket(home, workspaceId, { variant = 'site-provi
   const classification = classifyWorkspace(claims);
   const sitePlan = await readJson(path.join(root, 'site', 'sitemap.json'), null);
   const designSystem = await readJson(path.join(root, 'site', 'design-system.json'), null);
+  const preferences = await readJson(path.join(root, 'memory', 'preferences.json'), null);
   const critiqueLearning = await readJson(path.join(root, 'site', 'critique-learning.json'), null);
   const latestChangeBrief = await readLatestChangeBrief(root);
   const build = await latestBuild(root);
@@ -171,6 +172,7 @@ export async function buildSitePacket(home, workspaceId, { variant = 'site-provi
     profile,
     classification,
     claims,
+    preferences,
     sitePlan,
     designSystem,
     latestBuild: build ? { id: build.id, root: build.root || `builds/${build.directory || build.id}`, createdAt: build.createdAt, routes: build.routes || [] } : null,
@@ -306,6 +308,7 @@ Return ONLY valid JSON matching this shape:
 Rules:
 
 - Preserve the workspace classification and primary goal unless the packet contains strong contradictory evidence.
+- Use preferences/feedback memory as anti-drift guidance; preserve accepted brand voice and avoid rejected directions.
 - Use critiqueLearning/latestCritique as reinforcement: avoid repeating findings and preserve proven strengths.
 - If changeControl is present, obey it as the regeneration contract: implement mustChange, preserve mustPreserve, and avoid unrelated copy/nav/CTA drift.
 - Keep pages internally coherent: shared nav, consistent design language, stable route paths, stable section ids.

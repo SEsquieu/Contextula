@@ -4,6 +4,14 @@ Contextula is a scoped-context operating layer for modernization loops.
 
 It keeps customer/project context alive over time by combining bounded workspaces, append-only timelines, grounded memory claims, research snapshots, modernization plans, and approval-gated execution.
 
+## Project status
+
+Contextula began as a product exploration and has grown into a working reference implementation with a substantial CLI, durable workspace model, provider boundaries, approval gates, site-generation loops, and smoke coverage. Active product development is not currently a priority, so this repository is published as an inspectable foundation for people interested in bounded agent memory and human-supervised operations.
+
+The project is maintained on a best-effort basis. Focused fixes and small improvements are welcome, but there is no promised release cadence or hosted service.
+
+> **Security posture:** Contextula is a local, trusted-operator tool—not a hardened multi-tenant service. Keep the data home outside the repository, treat configured provider commands and target repositories as trusted execution edges, and review [SECURITY.md](./SECURITY.md) before using real customer data.
+
 ## What it is
 
 - a persistent operational pipeline for modernization work
@@ -130,6 +138,10 @@ Model-backed design uses the same pattern:
 CONTEXTULA_OPENCLAW_DESIGN_COMMAND="your-command-that-reads-stdin-and-writes-design-json"
 npm run contextula -- design html <workspace-id> --provider openclaw --variant model-v1
 ```
+
+## Contributing and license
+
+Contextula is available under the [MIT License](./LICENSE). See [CONTRIBUTING.md](./CONTRIBUTING.md) for the project boundaries and local verification workflow.
 
 ## Design principle
 

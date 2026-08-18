@@ -6,3 +6,6 @@
 .env
 .env.*
 visual-review/
+.contextula-home/
+contextula-data/
+customer-data/
